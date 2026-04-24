@@ -101,14 +101,20 @@ export default function ProductDetail({ product, related }) {
       return;
     }
     setAdding(true);
+    // Find the selected variant — its .id is the Shopify variant GID
+    const variant =
+      product.variants?.find(
+        (v) => v.size === selectedSize || v.title === selectedSize
+      ) || product.variants?.[0];
     addItem({
-      id: product._id,
-      productId: product._id,
+      id: product.id,                           // product GID (for display)
+      variantId: variant?.id || product.id,      // variant GID — required for Shopify checkout
+      productId: product.id,
       title: product.title,
-      price: product.price,
+      price: variant?.price || product.price,
       image: images[0] || "",
-      slug: product.slug || "",
-      size: selectedSize || product.variants?.[0]?.size || null,
+      slug: product.slug || product.handle || "",
+      size: selectedSize || variant?.size || null,
     });
     setTimeout(() => setAdding(false), 1800);
   };
@@ -478,7 +484,7 @@ export default function ProductDetail({ product, related }) {
                 {
                   icon: <Shield size={15} />,
                   label: "Secure Pay",
-                  sub: "via Razorpay",
+                  sub: "via Shopify",
                 },
               ].map((b) => (
                 <div

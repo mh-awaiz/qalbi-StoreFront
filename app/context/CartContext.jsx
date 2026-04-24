@@ -3,48 +3,50 @@ import { createContext, useContext, useReducer, useEffect } from "react";
 
 const CartContext = createContext(null);
 
+// Match cart items by variantId (Shopify GID) + size for uniqueness
+const itemKey = (item) =>
+  `${item.variantId || item.id}::${item.size || ""}`;
+
 const cartReducer = (state, action) => {
   switch (action.type) {
     case "ADD_ITEM": {
-      const exists = state.items.find(
-        (i) => i.id === action.payload.id && i.size === action.payload.size
-      );
+      const key = itemKey(action.payload);
+      const exists = state.items.find((i) => itemKey(i) === key);
       if (exists) {
         return {
           ...state,
           items: state.items.map((i) =>
-            i.id === action.payload.id && i.size === action.payload.size
-              ? { ...i, qty: i.qty + 1 }
-              : i
+            itemKey(i) === key ? { ...i, qty: i.qty + 1 } : i
           ),
         };
       }
-      return { ...state, items: [...state.items, { ...action.payload, qty: 1 }] };
-    }
-    case "REMOVE_ITEM":
       return {
         ...state,
-        items: state.items.filter(
-          (i) => !(i.id === action.payload.id && i.size === action.payload.size)
-        ),
+        items: [...state.items, { ...action.payload, qty: 1 }],
       };
-    case "UPDATE_QTY":
+    }
+    case "REMOVE_ITEM": {
+      const key = itemKey(action.payload);
+      return {
+        ...state,
+        items: state.items.filter((i) => itemKey(i) !== key),
+      };
+    }
+    case "UPDATE_QTY": {
+      const key = itemKey(action.payload);
       if (action.payload.qty <= 0) {
         return {
           ...state,
-          items: state.items.filter(
-            (i) => !(i.id === action.payload.id && i.size === action.payload.size)
-          ),
+          items: state.items.filter((i) => itemKey(i) !== key),
         };
       }
       return {
         ...state,
         items: state.items.map((i) =>
-          i.id === action.payload.id && i.size === action.payload.size
-            ? { ...i, qty: action.payload.qty }
-            : i
+          itemKey(i) === key ? { ...i, qty: action.payload.qty } : i
         ),
       };
+    }
     case "CLEAR_CART":
       return { ...state, items: [] };
     case "SET_ITEMS":
@@ -85,8 +87,10 @@ export function CartProvider({ children }) {
     dispatch({ type: "ADD_ITEM", payload: item });
     dispatch({ type: "OPEN_CART" });
   };
-  const removeItem = (id, size) => dispatch({ type: "REMOVE_ITEM", payload: { id, size } });
-  const updateQty = (id, size, qty) => dispatch({ type: "UPDATE_QTY", payload: { id, size, qty } });
+  const removeItem = (variantId, size, id) =>
+    dispatch({ type: "REMOVE_ITEM", payload: { variantId, size, id } });
+  const updateQty = (variantId, size, qty, id) =>
+    dispatch({ type: "UPDATE_QTY", payload: { variantId, size, qty, id } });
   const clearCart = () => dispatch({ type: "CLEAR_CART" });
   const toggleCart = () => dispatch({ type: "TOGGLE_CART" });
   const closeCart = () => dispatch({ type: "CLOSE_CART" });

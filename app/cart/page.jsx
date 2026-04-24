@@ -453,7 +453,7 @@ export default function CartPage() {
 
                   <p className="text-center text-[11px] text-gray-400 flex items-center justify-center gap-1">
                     <FiShield size={11} className="text-green-500" />
-                    100% secure checkout via Razorpay
+                    100% secure checkout via Shopify
                   </p>
                 </div>
               </div>
