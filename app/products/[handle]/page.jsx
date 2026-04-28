@@ -4,7 +4,7 @@ import ProductDetail from "./ProductDetail";
 async function getProduct(handle) {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/products/${handle}`,
+      `${process.env.PUBLIC_APP_URL}/api/products/${handle}`,
       { next: { revalidate: 3600 } },
     );
     if (!res.ok) return null;

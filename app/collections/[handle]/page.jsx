@@ -6,7 +6,7 @@ import CollectionGrid from "./CollectionGrid";
 async function getCollectionData(handle) {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/collections/${handle}/products?limit=100`,
+      `${process.env.PUBLIC_APP_URL}/api/collections/${handle}/products?limit=100`,
       { next: { revalidate: 3600 } }
     );
     const data = await res.json();
