@@ -3,7 +3,7 @@ import ShopClient from "./ShopClient";
 async function getAllProducts() {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/products?limit=100`,
+      `${process.env.PUBLIC_APP_URL}/api/products?limit=100`,
       { next: { revalidate: 3600 } },
     );
     const data = await res.json();
