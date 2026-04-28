@@ -1,12 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useCart } from "../context/CartContext";
 import { FiShoppingBag, FiStar, FiCheck, FiHeart } from "react-icons/fi";
 import { FaHeart } from "react-icons/fa";
 
 function useWishlistItem(slug, productId) {
   const [active, setActive] = useState(false);
+
   const sync = () => {
     try {
       const w = JSON.parse(localStorage.getItem("qalbi_wishlist") || "[]");
@@ -15,6 +17,7 @@ function useWishlistItem(slug, productId) {
       setActive(false);
     }
   };
+
   useEffect(() => {
     sync();
     window.addEventListener("wishlist-updated", sync);
@@ -27,7 +30,7 @@ function useWishlistItem(slug, productId) {
     try {
       const w = JSON.parse(localStorage.getItem("qalbi_wishlist") || "[]");
       const idx = w.findIndex(
-        (i) => i.slug === slug || i.productId === productId
+        (i) => i.slug === slug || i.productId === productId,
       );
       const updated =
         idx > -1
@@ -38,10 +41,15 @@ function useWishlistItem(slug, productId) {
       setActive(idx === -1);
     } catch {}
   };
+
   return { active, toggle };
 }
 
-export default function ProductCard({ product, className = "" }) {
+export default function ProductCard({
+  product,
+  className = "",
+  priority = false,
+}) {
   const { addItem } = useCart();
   const [imgIdx, setImgIdx] = useState(0);
   const [added, setAdded] = useState(false);
@@ -49,17 +57,17 @@ export default function ProductCard({ product, className = "" }) {
 
   const { active: wishlisted, toggle: toggleWishlist } = useWishlistItem(
     product.slug || product.handle,
-    product.id
+    product.id,
   );
 
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    // Use the first available variant — its .id is the Shopify variant GID
-    const firstVariant = product.variants?.find((v) => v.available) || product.variants?.[0];
+    const firstVariant =
+      product.variants?.find((v) => v.available) || product.variants?.[0];
     addItem({
-      id: product.id,                          // product GID (for display/linking)
-      variantId: firstVariant?.id || product.id, // variant GID — used for Shopify checkout
+      id: product.id,
+      variantId: firstVariant?.id || product.id,
       title: product.title,
       price: firstVariant?.price || product.price,
       image: product.images?.[0] || "",
@@ -82,47 +90,53 @@ export default function ProductCard({ product, className = "" }) {
         price: product.price,
         compareAtPrice: product.compareAtPrice,
       },
-      e
+      e,
     );
   };
 
-  const discount =
-    product.compareAtPrice && product.compareAtPrice > product.price
-      ? Math.round(
-          ((product.compareAtPrice - product.price) / product.compareAtPrice) * 100
-        )
-      : null;
-
-  const href = `/products/${product.slug || product.handle}`;
-
-  // ── Price display ──────────────────────────────────────────────────────────
-  // Use product.price (set by normalizeProduct from priceRange or first variant)
-  const displayPrice = product.price > 0
-    ? product.price
-    : product.variants?.[0]?.price || 0;
+  const displayPrice =
+    product.price > 0 ? product.price : product.variants?.[0]?.price || 0;
 
   const displayCompare =
     product.compareAtPrice && product.compareAtPrice > displayPrice
       ? product.compareAtPrice
       : null;
 
+  const discount = displayCompare
+    ? Math.round(((displayCompare - displayPrice) / displayCompare) * 100)
+    : null;
+
+  const href = `/products/${product.slug || product.handle}`;
+
+  // Use the hovered image src — falls back to first image
+  const currentImage = product.images?.[imgIdx] || product.images?.[0] || null;
+
   return (
     <div
       className={`product-card group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${className}`}
     >
       <Link href={href} className="block">
-        <div className="relative aspect-[3/4] overflow-hidden bg-gray-50">
-          <img
-            src={product.images?.[imgIdx] || product.images?.[0] || "/placeholder.jpg"}
-            alt={product.title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-            onMouseEnter={() => product.images?.[1] && setImgIdx(1)}
-            onMouseLeave={() => setImgIdx(0)}
-            loading="lazy"
-          />
+        {/* ── Image ── */}
+        <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+          {currentImage ? (
+            <Image
+              src={currentImage}
+              alt={product.title}
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+              priority={priority}
+              onMouseEnter={() => product.images?.[1] && setImgIdx(1)}
+              onMouseLeave={() => setImgIdx(0)}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-200 text-4xl">
+              👗
+            </div>
+          )}
 
           {/* Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1">
+          <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
             {discount && (
               <span className="px-2 py-0.5 bg-[var(--secondary)] text-white text-[10px] font-bold rounded-full shadow-sm">
                 -{discount}%
@@ -135,10 +149,10 @@ export default function ProductCard({ product, className = "" }) {
             )}
           </div>
 
-          {/* Wishlist button */}
+          {/* Wishlist */}
           <button
             onClick={handleWishlist}
-            className="absolute top-2 right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200"
+            className="absolute top-2 right-2 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200"
             style={{
               transform: heartAnim ? "scale(1.35)" : undefined,
               transition: "transform 0.2s cubic-bezier(0.34,1.56,0.64,1)",
@@ -153,7 +167,7 @@ export default function ProductCard({ product, className = "" }) {
           </button>
 
           {/* Quick add */}
-          <div className="absolute bottom-0 left-0 right-0 sm:translate-y-full sm:group-hover:translate-y-0 transition-transform duration-300">
+          <div className="absolute bottom-0 left-0 right-0 z-10 sm:translate-y-full sm:group-hover:translate-y-0 transition-transform duration-300">
             <button
               onClick={handleAddToCart}
               className={`w-full py-2.5 sm:py-3 text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
@@ -163,15 +177,19 @@ export default function ProductCard({ product, className = "" }) {
               }`}
             >
               {added ? (
-                <><FiCheck size={14} /> Added!</>
+                <>
+                  <FiCheck size={14} /> Added!
+                </>
               ) : (
-                <><FiShoppingBag size={14} /> Quick Add</>
+                <>
+                  <FiShoppingBag size={14} /> Quick Add
+                </>
               )}
             </button>
           </div>
         </div>
 
-        {/* Info */}
+        {/* ── Info ── */}
         <div className="p-3.5 sm:p-4">
           <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5 font-medium truncate">
             {product.category || product.productType || "Ethnic Wear"}
@@ -195,7 +213,9 @@ export default function ProductCard({ product, className = "" }) {
                   )}
                 </>
               ) : (
-                <span className="text-sm text-gray-400 italic">Price on request</span>
+                <span className="text-sm text-gray-400 italic">
+                  Price on request
+                </span>
               )}
             </div>
 
@@ -205,7 +225,11 @@ export default function ProductCard({ product, className = "" }) {
                 <FiStar
                   key={i}
                   size={10}
-                  className={i < 4 ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"}
+                  className={
+                    i < 4
+                      ? "fill-amber-400 text-amber-400"
+                      : "fill-gray-200 text-gray-200"
+                  }
                 />
               ))}
             </div>

@@ -5,6 +5,8 @@ import ReviewSection from "../app/sections/ReviewSection";
 import Link from "next/link";
 import { FiArrowRight } from "react-icons/fi";
 
+export const revalidate = 3600; // Revalidate every hour
+
 export default function Home() {
   return (
     <main className="flex flex-col overflow-x-hidden">
