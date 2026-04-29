@@ -6,7 +6,7 @@ const nextConfig = {
       { protocol: "https", hostname: "**.myshopify.com" },
     ],
     formats: ["image/avif", "image/webp"],
-    minimumCacheTTL: 86400, // cache images for 24h
+    minimumCacheTTL: 86400, 
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "react-icons"],

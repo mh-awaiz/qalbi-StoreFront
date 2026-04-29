@@ -1,7 +1,3 @@
-// app/api/payment/create-order/route.js
-// Creates a Shopify Cart via Storefront API and returns the hosted checkoutUrl.
-// Shopify handles payment (UPI, cards, COD, etc.) + Delhivery fulfillment natively.
-
 import { NextResponse } from "next/server";
 import { shopifyFetch } from "../../../../lib/shopify";
 
@@ -17,20 +13,25 @@ const CREATE_CART_MUTATION = `
   }
 `;
 
-/**
- * Ensure the variantId is a valid Shopify Global ID.
- * Shopify expects: gid://shopify/ProductVariant/12345
- * If we get a bare numeric or MongoDB ID, we can't use it.
- */
 function toShopifyGid(variantId) {
   if (!variantId) return null;
   const str = String(variantId);
-  // Already a proper Shopify GID
   if (str.startsWith("gid://shopify/ProductVariant/")) return str;
-  // Numeric ID — wrap it
   if (/^\d+$/.test(str)) return `gid://shopify/ProductVariant/${str}`;
-  // Anything else (MongoDB ObjectId, product GID, etc.) — can't use it
   return null;
+}
+
+
+function fixCheckoutUrl(url) {
+  if (!url) return url;
+  const shopifyDomain = process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN;
+  try {
+    const parsed = new URL(url);
+    parsed.host = shopifyDomain;
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }
 
 export async function POST(request) {
@@ -42,7 +43,6 @@ export async function POST(request) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
     }
 
-    // Build valid Shopify line items
     const lines = [];
     const invalidItems = [];
 
@@ -61,7 +61,7 @@ export async function POST(request) {
     if (invalidItems.length > 0) {
       console.warn(
         "Items missing valid Shopify variantId (skipped):",
-        invalidItems
+        invalidItems,
       );
     }
 
@@ -69,15 +69,16 @@ export async function POST(request) {
       return NextResponse.json(
         {
           error:
-            "No items have valid Shopify variant IDs. Make sure products are synced from Shopify and variantId is stored in the cart. Invalid items: " +
+            "No valid Shopify variant IDs found. Invalid items: " +
             invalidItems.join(", "),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Pre-fill buyer identity so Shopify checkout shows customer info
-    const buyerIdentity = customer?.email ? { email: customer.email } : undefined;
+    const buyerIdentity = customer?.email
+      ? { email: customer.email }
+      : undefined;
 
     const data = await shopifyFetch({
       query: CREATE_CART_MUTATION,
@@ -98,27 +99,29 @@ export async function POST(request) {
       console.error("Shopify cart userErrors:", errors);
       return NextResponse.json(
         { error: errors.map((e) => e.message).join(", ") },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!cart?.checkoutUrl) {
       return NextResponse.json(
         { error: "Shopify did not return a checkout URL" },
-        { status: 500 }
+        { status: 500 },
       );
     }
+    
+    const checkoutUrl = fixCheckoutUrl(cart.checkoutUrl);
 
     return NextResponse.json({
       success: true,
-      checkoutUrl: cart.checkoutUrl,
+      checkoutUrl,
       cartId: cart.id,
     });
   } catch (error) {
     console.error("POST /api/payment/create-order error:", error);
     return NextResponse.json(
       { error: "Failed to create cart: " + error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

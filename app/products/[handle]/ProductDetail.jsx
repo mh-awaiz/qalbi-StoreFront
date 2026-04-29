@@ -15,12 +15,19 @@ import {
   Minus,
   Share2,
   Check,
+  ChevronDown,
 } from "lucide-react";
 import Image from "next/image";
+import {
+  FiMail,
+  FiPhone,
+  FiClock,
+  FiGift,
+  FiCreditCard,
+  FiTag,
+} from "react-icons/fi";
 
-// Seeded random — same product always gets same rating/review count
 function seededRandom(seed) {
-  // Xorshift — much better distribution than LCG for similar seeds
   let s = seed >>> 0 || 123456789;
   return () => {
     s ^= s << 13;
@@ -32,27 +39,45 @@ function seededRandom(seed) {
 
 function getProductStats(productId = "") {
   const str = String(productId);
-  // Mix character codes + positions to get a well-spread seed
   const seed =
     [...str].reduce(
       (acc, c, i) => acc ^ (c.charCodeAt(0) * (i + 7) * 2654435761),
       str.length * 1234567,
     ) || 987654;
   const rand = seededRandom(seed);
-
-  // Burn a few calls so the first value isn't always similar
   rand();
   rand();
   rand();
-
-  // Rating: 3.0 – 4.5, steps of 0.1
-  const steps = Math.floor(rand() * 16); // 0–15  →  3.0, 3.1 … 4.5
+  const steps = Math.floor(rand() * 16);
   const rating = (4.0 + steps * 0.1).toFixed(1);
-
-  // Review count: 10 – 120
   const reviews = Math.floor(10 + rand() * 110);
-
   return { rating: parseFloat(rating), reviews };
+}
+
+// Accordion item component
+function AccordionItem({ title, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-gray-200">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between py-4 text-left group"
+      >
+        <span className="text-xs font-bold tracking-widest uppercase text-gray-700 group-hover:text-gray-900 transition-colors">
+          {title}
+        </span>
+        <ChevronDown
+          size={16}
+          className={`text-gray-400 transition-transform duration-300 flex-shrink-0 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      <div
+        className={`overflow-hidden transition-all duration-300 ${open ? "max-h-96 pb-4" : "max-h-0"}`}
+      >
+        <div className="text-sm text-gray-600 leading-relaxed">{children}</div>
+      </div>
+    </div>
+  );
 }
 
 export default function ProductDetail({ product, related }) {
@@ -64,13 +89,11 @@ export default function ProductDetail({ product, related }) {
   const [wishlisted, setWishlisted] = useState(false);
   const [adding, setAdding] = useState(false);
   const [sizeError, setSizeError] = useState(false);
-  const [tab, setTab] = useState("description");
   const [copied, setCopied] = useState(false);
 
-  // Stable per-product rating & review count
   const { rating, reviews } = useMemo(
-    () => getProductStats(product._id),
-    [product._id],
+    () => getProductStats(product.id || product.handle),
+    [product.id, product.handle],
   );
 
   const images = product.images || [];
@@ -101,14 +124,13 @@ export default function ProductDetail({ product, related }) {
       return;
     }
     setAdding(true);
-    // Find the selected variant — its .id is the Shopify variant GID
     const variant =
       product.variants?.find(
-        (v) => v.size === selectedSize || v.title === selectedSize
+        (v) => v.size === selectedSize || v.title === selectedSize,
       ) || product.variants?.[0];
     addItem({
-      id: product.id,                           // product GID (for display)
-      variantId: variant?.id || product.id,      // variant GID — required for Shopify checkout
+      id: product.id,
+      variantId: variant?.id || product.id,
       productId: product.id,
       title: product.title,
       price: variant?.price || product.price,
@@ -124,21 +146,18 @@ export default function ProductDetail({ product, related }) {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback
-    }
+    } catch {}
   };
 
   const prevImg = () =>
     setImgIdx((i) => (i - 1 + images.length) % images.length);
   const nextImg = () => setImgIdx((i) => (i + 1) % images.length);
 
-  const descLines = (product.description || "").split(/\n+/).filter(Boolean);
-
-  // How many full/half/empty stars to show
   const fullStars = Math.floor(rating);
   const hasHalf = rating - fullStars >= 0.5;
   const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+
+  const descLines = (product.description || "").split(/\n+/).filter(Boolean);
 
   return (
     <div className="min-h-screen bg-white">
@@ -162,7 +181,7 @@ export default function ProductDetail({ product, related }) {
           {product.category && (
             <>
               <Link
-                href={`/collections/${product.collections?.[0] || "dress-materials"}`}
+                href={`/collections/${product.collections?.[0] || "all"}`}
                 className="hover:text-[var(--secondary)] transition-colors"
               >
                 {product.category}
@@ -178,9 +197,12 @@ export default function ProductDetail({ product, related }) {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-16 sm:pb-20">
         <div className="grid md:grid-cols-2 gap-8 lg:gap-16">
-          {/* ── Images ─────────────────────────────── */}
+          {/* ── Images — 5:7 aspect ratio ── */}
           <div className="space-y-3">
-            <div className="relative aspect-square rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-100 group">
+            <div
+              className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gray-100 group"
+              style={{ aspectRatio: "5/7" }}
+            >
               {images.length > 0 ? (
                 <img
                   src={images[imgIdx]}
@@ -197,20 +219,20 @@ export default function ProductDetail({ product, related }) {
                 <>
                   <button
                     onClick={prevImg}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
                   >
                     <ChevronLeft size={18} />
                   </button>
                   <button
                     onClick={nextImg}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
                   >
                     <ChevronRight size={18} />
                   </button>
                 </>
               )}
 
-              <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+              <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
                 {discount && (
                   <span className="px-2.5 py-1 bg-[var(--secondary)] text-white text-[11px] font-bold rounded-full shadow-sm">
                     -{discount}% OFF
@@ -224,23 +246,25 @@ export default function ProductDetail({ product, related }) {
               </div>
 
               {images.length > 1 && (
-                <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/40 text-white text-[10px] font-medium rounded-full backdrop-blur-sm">
+                <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/40 text-white text-[10px] font-medium rounded-full backdrop-blur-sm z-10">
                   {imgIdx + 1}/{images.length}
                 </div>
               )}
             </div>
 
+            {/* Thumbnails */}
             {images.length > 1 && (
               <div className="grid grid-cols-5 gap-2">
                 {images.map((img, i) => (
                   <button
                     key={i}
                     onClick={() => setImgIdx(i)}
-                    className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                    className={`relative rounded-xl overflow-hidden border-2 transition-all ${
                       i === imgIdx
                         ? "border-[var(--secondary)] shadow-sm"
                         : "border-transparent opacity-60 hover:opacity-90"
                     }`}
+                    style={{ aspectRatio: "5/7" }}
                   >
                     <Image
                       src={img}
@@ -255,12 +279,12 @@ export default function ProductDetail({ product, related }) {
             )}
           </div>
 
-          {/* ── Product Info ────────────────────────── */}
+          {/* ── Product Info ── */}
           <div className="flex flex-col">
+            {/* Category + Share */}
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs text-[var(--secondary)] font-semibold tracking-widest uppercase">
                 {product.category}
-                {product.fabric && ` · ${product.fabric}`}
               </p>
               <button
                 onClick={handleShare}
@@ -275,6 +299,7 @@ export default function ProductDetail({ product, related }) {
               </button>
             </div>
 
+            {/* Title */}
             <h1
               className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-gray-900 leading-tight mb-3"
               style={{ fontFamily: "var(--font-cormorant)" }}
@@ -282,18 +307,16 @@ export default function ProductDetail({ product, related }) {
               {product.title}
             </h1>
 
-            {/* ── Dynamic Rating ── */}
+            {/* Rating */}
             <div className="flex items-center gap-2 mb-4">
               <div className="flex gap-0.5">
-                {/* Full stars */}
                 {[...Array(fullStars)].map((_, i) => (
                   <Star
-                    key={`full-${i}`}
+                    key={`f-${i}`}
                     size={13}
                     className="fill-amber-400 text-amber-400"
                   />
                 ))}
-                {/* Half star */}
                 {hasHalf && (
                   <span className="relative inline-block w-[13px] h-[13px]">
                     <Star
@@ -308,10 +331,9 @@ export default function ProductDetail({ product, related }) {
                     </span>
                   </span>
                 )}
-                {/* Empty stars */}
                 {[...Array(emptyStars)].map((_, i) => (
                   <Star
-                    key={`empty-${i}`}
+                    key={`e-${i}`}
                     size={13}
                     className="fill-gray-200 text-gray-200"
                   />
@@ -343,35 +365,14 @@ export default function ProductDetail({ product, related }) {
               )}
             </div>
 
-            {/* Stock indicator */}
-            <div className="mb-5">
-              {inStock ? (
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <span className="text-xs font-medium text-green-600">
-                    {lowStock
-                      ? `Only ${selectedVariant?.stock} left!`
-                      : "In Stock"}
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-red-400" />
-                  <span className="text-xs font-medium text-red-500">
-                    Out of Stock
-                  </span>
-                </div>
-              )}
-            </div>
+            {/* ── Removed: stock indicator ── */}
 
             {/* Size selector */}
-            {product.variants && product.variants.length > 0 && (
+            {/* {product.variants && product.variants.length > 0 && (
               <div id="size-selector" className="mb-5">
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="text-sm font-semibold text-gray-900">
-                    {product.variants.length === 1
-                      ? "Availability"
-                      : "Select Size"}
+                    {product.variants.length === 1 ? "Size" : "Select Size"}
                   </span>
                   {product.variants.length > 1 && (
                     <button className="text-xs text-[var(--secondary)] underline underline-offset-2 hover:no-underline">
@@ -406,12 +407,12 @@ export default function ProductDetail({ product, related }) {
                   ))}
                 </div>
                 {sizeError && (
-                  <p className="text-xs text-[var(--secondary)] mt-2 font-medium animate-fadeIn">
+                  <p className="text-xs text-[var(--secondary)] mt-2 font-medium">
                     Please select a size before adding to bag
                   </p>
                 )}
               </div>
-            )}
+            )} */}
 
             {/* Qty + Add to cart */}
             <div className="flex gap-3 mb-5">
@@ -469,7 +470,7 @@ export default function ProductDetail({ product, related }) {
             </div>
 
             {/* Trust badges */}
-            <div className="grid grid-cols-3 gap-2 mb-5">
+            <div className="grid grid-cols-3 gap-2 mb-6">
               {[
                 {
                   icon: <Truck size={15} />,
@@ -500,33 +501,9 @@ export default function ProductDetail({ product, related }) {
               ))}
             </div>
 
-            {/* Tabs */}
-            <div className="border-t border-gray-100 pt-4 flex-1">
-              <div className="flex gap-5 border-b border-gray-100 mb-4 overflow-x-auto no-scrollbar">
-                {["description", "details", "shipping"].map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTab(t)}
-                    className={`pb-2.5 text-xs font-semibold capitalize border-b-2 transition-all -mb-px whitespace-nowrap ${
-                      tab === t
-                        ? "border-[var(--secondary)] text-[var(--secondary)]"
-                        : "border-transparent text-gray-400 hover:text-gray-600"
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-
-              {tab === "description" && (
-                <div className="text-sm text-gray-600 leading-relaxed space-y-2">
-                  {descLines.map((line, i) => (
-                    <p key={i}>{line}</p>
-                  ))}
-                </div>
-              )}
-
-              {tab === "details" && (
+            {/* ── Accordion tabs (replaces old tab bar) ── */}
+            <div className="border-t border-gray-200">
+              <AccordionItem title="Details" defaultOpen={true}>
                 <div className="space-y-0">
                   {[
                     ["Category", product.category],
@@ -537,99 +514,250 @@ export default function ProductDetail({ product, related }) {
                       "Kurta (2.5m) · Bottom (2.5m) · Dupatta (2.25m)",
                     ],
                     ["Dispatch", "Ships within 2–3 business days"],
-                    ["Availability", inStock ? "In Stock" : "Out of Stock"],
                   ].map(([k, v]) => (
                     <div
                       key={k}
-                      className="flex justify-between py-2.5 border-b border-gray-50 text-sm"
+                      className="flex justify-between py-2 border-b border-gray-50 last:border-0"
                     >
-                      <span className="text-gray-400 font-medium">{k}</span>
-                      <span className="text-gray-700 text-right max-w-[60%]">
+                      <span className="text-gray-400 font-medium text-xs">
+                        {k}
+                      </span>
+                      <span className="text-gray-700 text-right text-xs max-w-[60%]">
                         {v}
                       </span>
                     </div>
                   ))}
+                  {descLines.length > 0 && (
+                    <div className="pt-3 space-y-1.5">
+                      {descLines.map((line, i) => (
+                        <p key={i} className="text-gray-600 text-sm">
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              </AccordionItem>
 
-              {tab === "shipping" && (
-                <div className="text-sm text-gray-600 space-y-3 leading-relaxed">
+              <AccordionItem title="Offers">
+                <div className="space-y-3">
+                  {[
+                    {
+                      icon: (
+                        <FiGift
+                          size={14}
+                          className="text-[var(--secondary)] flex-shrink-0 mt-0.5"
+                        />
+                      ),
+                      text: "Free shipping on orders above ₹999",
+                    },
+                    {
+                      icon: (
+                        <FiCreditCard
+                          size={14}
+                          className="text-[var(--secondary)] flex-shrink-0 mt-0.5"
+                        />
+                      ),
+                      text: "No extra charges — pay securely via Shopify",
+                    },
+                    {
+                      icon: (
+                        <FiTag
+                          size={14}
+                          className="text-[var(--secondary)] flex-shrink-0 mt-0.5"
+                        />
+                      ),
+                      text: "Exclusive deals for returning customers",
+                    },
+                  ].map((o) => (
+                    <div key={o.text} className="flex items-start gap-2.5">
+                      {o.icon}
+                      <span>{o.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </AccordionItem>
+
+              <AccordionItem title="Return Policy">
+                <div className="space-y-2">
+                  <p>7-day exchange policy from the date of delivery.</p>
                   <p>
-                    <strong>Standard Delivery:</strong> 4–7 business days · ₹99
+                    Item must be unused, unwashed, and in original packaging
+                    with tags intact.
                   </p>
-                  <p>
-                    <strong>Free Shipping:</strong> On all orders above ₹999
-                  </p>
-                  <p>
-                    <strong>Tracked Shipping:</strong> via Delhivery. Tracking
-                    link sent to your email after dispatch.
-                  </p>
-                  <p>
-                    <strong>Exchange:</strong> 7 days from delivery. Item must
-                    be unused, unwashed, and in original packaging. No direct
-                    refunds.
-                  </p>
-                  <p>
-                    <strong>Questions?</strong> Email us at
-                    info@qalbicouture.com
+                  <p>No direct refunds — store credit or exchange only.</p>
+                  <p>Sale items are not eligible for exchange.</p>
+                </div>
+              </AccordionItem>
+
+              <AccordionItem title="Support">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2.5">
+                    <FiMail
+                      size={14}
+                      className="text-[var(--secondary)] flex-shrink-0"
+                    />
+                    <span>
+                      <strong>Email:</strong> info@qalbicouture.com
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <FiPhone
+                      size={14}
+                      className="text-[var(--secondary)] flex-shrink-0"
+                    />
+                    <span>
+                      <strong>WhatsApp:</strong> +91 81304 21960
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <FiClock
+                      size={14}
+                      className="text-[var(--secondary)] flex-shrink-0"
+                    />
+                    <span>
+                      <strong>Hours:</strong> Mon–Sat, 10am – 7pm IST
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 pt-1 pl-0.5">
+                    We typically respond within 24 hours.
                   </p>
                 </div>
-              )}
+              </AccordionItem>
             </div>
           </div>
         </div>
 
-        {/* ── Related Products ─────────────────────── */}
+        {/* ── Related Products ── */}
+        {/* ── You May Also Like ── */}
         {related && related.length > 0 && (
-          <div className="mt-16 sm:mt-20">
-            <div className="flex items-end justify-between mb-6 sm:mb-8">
-              <h2
-                className="text-2xl sm:text-3xl font-semibold text-gray-900"
-                style={{ fontFamily: "var(--font-cormorant)" }}
-              >
-                You May Also Like
-              </h2>
+          <div className="mt-20 sm:mt-24">
+            {/* Section header */}
+            <div className="flex items-end justify-between mb-8 sm:mb-10">
+              <div>
+                <p className="text-xs text-[var(--secondary)] font-semibold tracking-widest uppercase mb-1">
+                  Handpicked For You
+                </p>
+                <h2
+                  className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-gray-900"
+                  style={{ fontFamily: "var(--font-cormorant)" }}
+                >
+                  You May Also Like
+                </h2>
+              </div>
               <Link
-                href={`/collections/${product.collections?.[0] || "dress-materials"}`}
-                className="text-xs text-[var(--secondary)] font-medium hover:underline underline-offset-2 hidden sm:block"
+                href={`/collections/${product.collections?.[0] || "all"}`}
+                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--secondary)] border border-[var(--secondary)] px-4 py-2 rounded-xl hover:bg-[var(--secondary)] hover:text-white transition-all"
               >
-                View collection →
+                View Collection →
               </Link>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              {related.map((p) => (
-                <Link
-                  href={`/products/${p.slug}`}
-                  key={p._id}
-                  className="product-card group bg-white rounded-2xl overflow-hidden border border-gray-100"
-                >
-                  <div className="aspect-[3/4] overflow-hidden bg-gray-100 img-zoom">
-                    <img
-                      src={p.images?.[0]}
-                      alt={p.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="p-3">
-                    <p className="text-[10px] text-gray-400 mb-0.5 font-medium">
-                      {p.category}
-                    </p>
-                    <p className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug group-hover:text-[var(--secondary)] transition-colors text-xs sm:text-sm">
-                      {p.title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <p className="text-sm font-bold text-[var(--secondary)]">
-                        ₹{p.price?.toLocaleString("en-IN")}
-                      </p>
-                      {p.compareAtPrice && (
-                        <p className="text-xs text-gray-400 line-through">
-                          ₹{p.compareAtPrice.toLocaleString("en-IN")}
+
+            {/* Product grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+              {related.map((p) => {
+                const relDiscount =
+                  p.compareAtPrice && p.compareAtPrice > p.price
+                    ? Math.round(
+                        ((p.compareAtPrice - p.price) / p.compareAtPrice) * 100,
+                      )
+                    : null;
+
+                return (
+                  <Link
+                    href={`/products/${p.handle || p.slug}`}
+                    key={p.id || p.handle}
+                    className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-300"
+                  >
+                    {/* Image */}
+                    <div
+                      className="relative overflow-hidden bg-gray-100"
+                      style={{ aspectRatio: "5/7" }}
+                    >
+                      {p.images?.[0] ? (
+                        <Image
+                          src={p.images[0]}
+                          alt={p.title}
+                          fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-200 text-4xl">
+                          👗
+                        </div>
+                      )}
+
+                      {/* Discount badge */}
+                      {relDiscount && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <span className="px-2 py-0.5 bg-[var(--secondary)] text-white text-[10px] font-bold rounded-full shadow-sm">
+                            -{relDiscount}%
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Quick view overlay on hover */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 z-10" />
+                      <div className="absolute bottom-0 left-0 right-0 z-20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                        <div className="bg-white/95 backdrop-blur-sm py-2.5 text-center text-xs font-semibold text-gray-900 flex items-center justify-center gap-1.5">
+                          <ShoppingBag size={12} />
+                          Quick View
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-3 sm:p-3.5">
+                      {p.category && (
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5 font-medium truncate">
+                          {p.category}
                         </p>
                       )}
+                      <p className="text-xs sm:text-sm font-medium text-gray-900 line-clamp-2 leading-snug group-hover:text-[var(--secondary)] transition-colors mb-2">
+                        {p.title}
+                      </p>
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                          <span className="text-sm font-bold text-[var(--secondary)]">
+                            ₹{Number(p.price).toLocaleString("en-IN")}
+                          </span>
+                          {p.compareAtPrice && p.compareAtPrice > p.price && (
+                            <span className="text-[10px] text-gray-400 line-through">
+                              ₹
+                              {Number(p.compareAtPrice).toLocaleString("en-IN")}
+                            </span>
+                          )}
+                        </div>
+                        {/* Mini star rating */}
+                        <div className="flex gap-0.5 flex-shrink-0">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              size={9}
+                              className={
+                                i < 4
+                                  ? "fill-amber-400 text-amber-400"
+                                  : "fill-gray-200 text-gray-200"
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Mobile "View Collection" button */}
+            <div className="mt-8 text-center sm:hidden">
+              <Link
+                href={`/collections/${product.collections?.[0] || "all"}`}
+                className="inline-flex items-center gap-2 px-6 py-3 border border-[var(--secondary)] text-[var(--secondary)] text-sm font-semibold rounded-xl hover:bg-[var(--secondary)] hover:text-white transition-all"
+              >
+                View Full Collection
+              </Link>
             </div>
           </div>
         )}

@@ -6,18 +6,19 @@ import CartDrawer from "./CartDrawer";
 
 export default function ConditionalShell({ children }) {
   const pathname = usePathname();
-  const isAdmin  = pathname?.startsWith("/admin");
+  const isAdmin = pathname?.startsWith("/admin");
+  const isHome = pathname === "/";
 
   if (isAdmin) {
-    // Admin routes: no navbar, no footer, no cart drawer, no announcement bar
     return <>{children}</>;
   }
 
   return (
     <>
-      <Navbar />
+      <Navbar transparent={isHome} />
       <CartDrawer />
-      <main className="pt-0">{children}</main>
+      {/* On homepage: no top padding so hero video sits behind the navbar */}
+      <main className={isHome ? "pt-0" : "pt-0"}>{children}</main>
       <Footer />
     </>
   );
