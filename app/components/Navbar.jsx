@@ -118,7 +118,7 @@ export default function Navbar({ transparent = false }) {
 
       {/* Navbar — fixed so it overlaps hero, sticky on other pages */}
       <header
-        className={`${transparent ? "fixed" : "sticky"} top-0 left-0 right-0 z-[60] transition-all duration-500 ${navBg}`}
+        className={`${transparent ? "fixed" : "sticky"} top-0 left-0 right-0 z-[30] transition-all duration-500 ${navBg}`}
       >
         {/* ── Desktop ── */}
         <div className="hidden md:grid grid-cols-3 items-center max-w-7xl mx-auto px-4 sm:px-6 h-[68px]">
@@ -340,9 +340,6 @@ export default function Navbar({ transparent = false }) {
           </div>
         </div>
       </header>
-
-      {/* Spacer — only on non-transparent pages so content doesn't hide under fixed nav */}
-      {!transparent && <div className="h-[68px] md:h-[68px]" />}
 
       {/* Mobile drawer */}
       <div

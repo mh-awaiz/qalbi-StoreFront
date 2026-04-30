@@ -21,7 +21,6 @@ function toShopifyGid(variantId) {
   return null;
 }
 
-
 function fixCheckoutUrl(url) {
   if (!url) return url;
   const shopifyDomain = process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN;
@@ -109,8 +108,24 @@ export async function POST(request) {
         { status: 500 },
       );
     }
-    
-    const checkoutUrl = fixCheckoutUrl(cart.checkoutUrl);
+
+    function normalizeCheckoutUrl(url) {
+      if (!url) return url;
+
+      try {
+        const parsed = new URL(url);
+
+        if (parsed.hostname.includes("qalbicouture.com")) {
+          parsed.hostname = "qalbicouture.myshopify.com";
+        }
+
+        return parsed.toString();
+      } catch {
+        return url;
+      }
+    }
+
+    const checkoutUrl = normalizeCheckoutUrl(cart.checkoutUrl);
 
     return NextResponse.json({
       success: true,
