@@ -8,58 +8,114 @@ import { FaQuoteLeft } from "react-icons/fa";
 
 const reviews = [
   {
-    name: "Fatima Shaikh",
-    city: "Mumbai",
-    rating: 5,
-    text: "The quality of the chiffon dress material is absolutely gorgeous. The embroidery is so fine and detailed. Will definitely order again!",
-    product: "Beige Chiffon Dress Material",
-    avatar: "FS",
-    color: "from-rose-400 to-pink-500",
-  },
-  {
-    name: "Priya Mehta",
+    name: "Rafat Jamal",
     city: "Delhi",
     rating: 5,
-    text: "Ordered the Pakistani suit material and I'm blown away. The georgette is so soft, and the dupatta is stunning. Fast delivery too!",
-    product: "Green Georgette Pakistani Suit",
-    avatar: "PM",
-    color: "from-teal-400 to-emerald-500",
+    text: "Very good experience of Qalbi Couture. It's an amazing place for clothes collection.",
+    product: "Luxury Clothing Collection",
+    avatar: "RJ",
+    color: "from-rose-400 to-pink-500",
+    link: "https://www.google.com/search?sca_esv=3bfd357771d07d42&biw=1536&bih=776&sxsrf=ANbL-n7zWMiQbB1f6KFqSRXHUlWmjS-bJQ:1778855572888&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOQgIyiSmO1Zzbv7JLBjZueAJdOhapYUaHgT0atJHN1mrc9C6oQ80wkOBmrKctQGYk0lLZoxluMqxzadSXSyPMpt-a3EB&q=Qalbi+Couture+Reviews&sa=X&ved=2ahUKEwiJjp20wbuUAxWSzTgGHdsUBdwQ0bkNegQIIRAH&cshid=1778855858566032",
   },
   {
-    name: "Ayesha Khan",
+    name: "Arsh Ali",
+    city: "Mumbai",
+    rating: 5,
+    text: "Qalbi Couture dresses are so beautiful.",
+    product: "Designer Dresses",
+    avatar: "AA",
+    color: "from-teal-400 to-emerald-500",
+    link: "https://www.google.com/search?sca_esv=3bfd357771d07d42&biw=1536&bih=776&sxsrf=ANbL-n7zWMiQbB1f6KFqSRXHUlWmjS-bJQ:1778855572888&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOQgIyiSmO1Zzbv7JLBjZueAJdOhapYUaHgT0atJHN1mrc9C6oQ80wkOBmrKctQGYk0lLZoxluMqxzadSXSyPMpt-a3EB&q=Qalbi+Couture+Reviews&sa=X&ved=2ahUKEwiJjp20wbuUAxWSzTgGHdsUBdwQ0bkNegQIIRAH&cshid=1778855858566032",
+  },
+  {
+    name: "Zoya Ansari",
     city: "Hyderabad",
     rating: 5,
-    text: "Qalbi Couture never disappoints. The tissue organza salwar suit was exactly as shown. Beautiful colors, premium quality.",
-    product: "Pista Organza Salwar Suit",
-    avatar: "AK",
-    color: "from-purple-400 to-violet-500",
-  },
-  {
-    name: "Zara Ahmed",
-    city: "Bangalore",
-    rating: 4,
-    text: "Lovely collection and great customer service. The dress materials are top quality. Packaging was also very neat and elegant.",
-    product: "Chanderi Cotton Silk Suit",
+    text: "Great quality clothes with stylish designs, comfortable fabric, and timely delivery. Highly satisfied with the purchase.",
+    product: "Premium Outfit Collection",
     avatar: "ZA",
-    color: "from-amber-400 to-orange-500",
+    color: "from-purple-400 to-violet-500",
+    link: "https://www.google.com/search?sca_esv=3bfd357771d07d42&biw=1536&bih=776&sxsrf=ANbL-n7zWMiQbB1f6KFqSRXHUlWmjS-bJQ:1778855572888&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOQgIyiSmO1Zzbv7JLBjZueAJdOhapYUaHgT0atJHN1mrc9C6oQ80wkOBmrKctQGYk0lLZoxluMqxzadSXSyPMpt-a3EB&q=Qalbi+Couture+Reviews&sa=X&ved=2ahUKEwiJjp20wbuUAxWSzTgGHdsUBdwQ0bkNegQIIRAH&cshid=1778855858566032",
   },
   {
-    name: "Nadia Rahman",
+    name: "Aisha Syed",
+    city: "Lucknow",
+    rating: 5,
+    text: "Beautiful collection.",
+    product: "Ethnic Wear Collection",
+    avatar: "AS",
+    color: "from-amber-400 to-orange-500",
+    link: "https://www.google.com/search?sca_esv=3bfd357771d07d42&biw=1536&bih=776&sxsrf=ANbL-n7zWMiQbB1f6KFqSRXHUlWmjS-bJQ:1778855572888&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOQgIyiSmO1Zzbv7JLBjZueAJdOhapYUaHgT0atJHN1mrc9C6oQ80wkOBmrKctQGYk0lLZoxluMqxzadSXSyPMpt-a3EB&q=Qalbi+Couture+Reviews&sa=X&ved=2ahUKEwiJjp20wbuUAxWSzTgGHdsUBdwQ0bkNegQIIRAH&cshid=1778855858566032",
+  },
+  {
+    name: "Mehram Shamim",
+    city: "Noida",
+    rating: 5,
+    text: "The collection was amazing. Loved to be there. The collection has a blend of every style.",
+    product: "Mixed Fashion Collection",
+    avatar: "MS",
+    color: "from-red-400 to-rose-500",
+    link: "https://www.google.com/search?sca_esv=3bfd357771d07d42&biw=1536&bih=776&sxsrf=ANbL-n7zWMiQbB1f6KFqSRXHUlWmjS-bJQ:1778855572888&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOQgIyiSmO1Zzbv7JLBjZueAJdOhapYUaHgT0atJHN1mrc9C6oQ80wkOBmrKctQGYk0lLZoxluMqxzadSXSyPMpt-a3EB&q=Qalbi+Couture+Reviews&sa=X&ved=2ahUKEwiJjp20wbuUAxWSzTgGHdsUBdwQ0bkNegQIIRAH&cshid=1778855858566032",
+  },
+  {
+    name: "Taniya Shamim",
+    city: "Bangalore",
+    rating: 5,
+    text: "Loved my purchase from this brand. The clothes are trendy, comfortable, and true to size. Highly recommendable.",
+    product: "Trendy Fashion Wear",
+    avatar: "TS",
+    color: "from-blue-400 to-indigo-500",
+    link: "https://www.google.com/search?sca_esv=3bfd357771d07d42&biw=1536&bih=776&sxsrf=ANbL-n7zWMiQbB1f6KFqSRXHUlWmjS-bJQ:1778855572888&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOQgIyiSmO1Zzbv7JLBjZueAJdOhapYUaHgT0atJHNmrc9C6oQ80wkOBmrKctQGYk0lLZoxluMqxzadSXSyPMpt-a3EB&q=Qalbi+Couture+Reviews&sa=X&ved=2ahUKEwiJjp20wbuUAxWSzTgGHdsUBdwQ0bkNegQIIRAH&cshid=1778855858566032",
+  },
+  {
+    name: "Saima Ansari",
     city: "Kolkata",
     rating: 5,
-    text: "I've been ordering from Qalbi Couture for 2 years now and they never fail. The hand embroidery work is just stunning.",
-    product: "Wine Organza Dress Material",
-    avatar: "NR",
-    color: "from-red-400 to-rose-500",
+    text: "Aesthetic and beautiful outfits. A fit that works perfectly for my occasions.",
+    product: "Occasion Wear",
+    avatar: "SA",
+    color: "from-green-400 to-emerald-500",
+    link: "https://www.google.com/search?sca_esv=3bfd357771d07d42&biw=1536&bih=776&sxsrf=ANbL-n7zWMiQbB1f6KFqSRXHUlWmjS-bJQ:1778855572888&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOQgIyiSmO1Zzbv7JLBjZueAJdOhapYUaHgT0atJHN1mrc9C6oQ80wkOBmrKctQGYk0lLZoxluMqxzadSXSyPMpt-a3EB&q=Qalbi+Couture+Reviews&sa=X&ved=2ahUKEwiJjp20wbuUAxWSzTgGHdsUBdwQ0bkNegQIIRAH&cshid=1778855858566032",
   },
   {
-    name: "Rukhsar Patel",
+    name: "Y K",
     city: "Surat",
     rating: 5,
-    text: "Absolutely love the collection! The Pink Chanderi with zari work is my go-to for every occasion. Premium quality at fair price.",
-    product: "Pink Chanderi Zariwork",
-    avatar: "RP",
-    color: "from-blue-400 to-indigo-500",
+    text: "Good collection. Great value for the money.",
+    product: "Affordable Luxury Collection",
+    avatar: "YK",
+    color: "from-cyan-400 to-blue-500",
+    link: "https://www.google.com/search?sca_esv=3bfd357771d07d42&biw=1536&bih=776&sxsrf=ANbL-n7zWMiQbB1f6KFqSRXHUlWmjS-bJQ:1778855572888&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOQgIyiSmO1Zzbv7JLBjZueAJdOhapYUaHgT0atJHN1mrc9C6oQ80wkOBmrKctQGYk0lLZoxluMqxzadSXSyPMpt-a3EB&q=Qalbi+Couture+Reviews&sa=X&ved=2ahUKEwiJjp20wbuUAxWSzTgGHdsUBdwQ0bkNegQIIRAH&cshid=1778855858566032",
+  },
+  {
+    name: "Faiz Ahmad",
+    city: "Delhi",
+    rating: 5,
+    text: "Visited for wedding shopping and my wife was very happy with their collection. Affordable luxury suits under one roof. Highly recommended.",
+    product: "Wedding Collection",
+    avatar: "FA",
+    color: "from-yellow-400 to-orange-500",
+    link: "https://www.google.com/search?sca_esv=3bfd357771d07d42&biw=1536&bih=776&sxsrf=ANbL-n7zWMiQbB1f6KFqSRXHUlWmjS-bJQ:1778855572888&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOQgIyiSmO1Zzbv7JLBjZueAJdOhapYUaHgT0atJHN1mrc9C6oQ80wkOBmrKctQGYk0lLZoxluMqxzadSXSyPMpt-a3EB&q=Qalbi+Couture+Reviews&sa=X&ved=2ahUKEwiJjp20wbuUAxWSzTgGHdsUBdwQ0bkNegQIIRAH&cshid=1778855858566032",
+  },
+  {
+    name: "Mohammad Reyan",
+    city: "Jaipur",
+    rating: 5,
+    text: "Best clothes for women, trendy styles, and lots of options to choose from.",
+    product: "Women's Fashion Collection",
+    avatar: "MR",
+    color: "from-indigo-400 to-purple-500",
+    link: "https://www.google.com/search?sca_esv=3bfd357771d07d42&biw=1536&bih=776&sxsrf=ANbL-n7zWMiQbB1f6KFqSRXHUlWmjS-bJQ:1778855572888&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOQgIyiSmO1Zzbv7JLBjZueAJdOhapYUaHgT0atJHN1mrc9C6oQ80wkOBmrKctQGYk0lLZoxluMqxzadSXSyPMpt-a3EB&q=Qalbi+Couture+Reviews&sa=X&ved=2ahUKEwiJjp20wbuUAxWSzTgGHdsUBdwQ0bkNegQIIRAH&cshid=1778855858566032",
+  },
+  {
+    name: "Saima Arfin",
+    city: "Lucknow",
+    rating: 5,
+    text: "Seeing the collection here truly made my heart happy. Perfect combination of quality and style. Everyone must visit!",
+    product: "Premium Fashion Collection",
+    avatar: "SR",
+    color: "from-pink-400 to-rose-500",
+    link: "https://www.google.com/search?sca_esv=3bfd357771d07d42&biw=1536&bih=776&sxsrf=ANbL-n7zWMiQbB1f6KFqSRXHUlWmjS-bJQ:1778855572888&si=AL3DRZEsmMGCryMMFSHJ3StBhOdZ2-6yYkXd_doETEE1OR-qOQgIyiSmO1Zzbv7JLBjZueAJdOhapYUaHgT0atJHN1mrc9C6oQ80wkOBmrKctQGYk0lLZoxluMqxzadSXSyPMpt-a3EB&q=Qalbi+Couture+Reviews&sa=X&ved=2ahUKEwiJjp20wbuUAxWSzTgGHdsUBdwQ0bkNegQIIRAH&cshid=1778855858566032",
   },
 ];
 
@@ -86,7 +142,7 @@ export default function ReviewSection() {
         },
       },
       {
-        breakpoint: 768, // 🔥 change from 640 → 768
+        breakpoint: 768, // change from 640 → 768
         settings: {
           slidesToShow: 1,
           slidesToScroll: 1,
@@ -156,8 +212,8 @@ export default function ReviewSection() {
                     />
                   ))}
                 </div>
-                <span className="text-sm font-semibold text-gray-800">4.9</span>
-                <span className="text-sm text-gray-400">from 500+ reviews</span>
+                <span className="text-sm font-semibold text-gray-800">5.0</span>
+                <span className="text-sm text-gray-400">from 50+ reviews</span>
               </div>
             </div>
 
@@ -183,59 +239,70 @@ export default function ReviewSection() {
             <Slider ref={sliderRef} {...settings}>
               {reviews.map((review, i) => (
                 <div key={review.name} className="px-2 sm:px-3">
-                  <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-sm hover:shadow-lg hover:shadow-red-50 hover:border-red-100 transition-all duration-300 group flex flex-col h-full w-full">
-                    {/* Quote icon */}
-                    <FaQuoteLeft
-                      size={22}
-                      className="text-red-100 group-hover:text-red-200 transition-colors mb-4"
-                    />
+                  {/* Google Review Link */}
+                  <a
+                    href={review.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-sm hover:shadow-lg hover:shadow-red-50 hover:border-red-100 transition-all duration-300 group flex flex-col h-full w-full">
+                      {/* Quote icon */}
+                      <FaQuoteLeft
+                        size={22}
+                        className="text-red-100 group-hover:text-red-200 transition-colors mb-4"
+                      />
 
-                    {/* Stars */}
-                    <div className="flex gap-0.5 mb-3">
-                      {[...Array(review.rating)].map((_, j) => (
-                        <FiStar
-                          key={j}
-                          size={13}
-                          className="fill-amber-400 text-amber-400"
-                        />
-                      ))}
-                      {[...Array(5 - review.rating)].map((_, j) => (
-                        <FiStar
-                          key={`e-${j}`}
-                          size={13}
-                          className="fill-gray-200 text-gray-200"
-                        />
-                      ))}
-                    </div>
-
-                    {/* Review text — no line-clamp on mobile so full text shows */}
-                    <p className="text-sm sm:text-sm text-gray-600 leading-relaxed mb-3 flex-1 sm:line-clamp-4">
-                      "{review.text}"
-                    </p>
-
-                    {/* Product tag */}
-                    <p className="text-[11px] text-gray-400 mb-4 font-medium bg-gray-50 px-2.5 py-1 rounded-full inline-block self-start">
-                      {review.product}
-                    </p>
-
-                    {/* Reviewer */}
-                    <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white bg-gradient-to-br ${review.color} shadow-sm flex-shrink-0`}
-                      >
-                        {review.avatar}
+                      {/* Stars */}
+                      <div className="flex gap-0.5 mb-3">
+                        {[...Array(review.rating)].map((_, j) => (
+                          <FiStar
+                            key={j}
+                            size={13}
+                            className="fill-amber-400 text-amber-400"
+                          />
+                        ))}
+                        {[...Array(5 - review.rating)].map((_, j) => (
+                          <FiStar
+                            key={`e-${j}`}
+                            size={13}
+                            className="fill-gray-200 text-gray-200"
+                          />
+                        ))}
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-900">
-                          {review.name}
+
+                      {/* Review text — no line-clamp on mobile so full text shows */}
+                      <p className="text-sm sm:text-sm text-gray-600 leading-relaxed mb-3 flex-1 sm:line-clamp-4">
+                        "{review.text}"
+                      </p>
+
+                      {/* Product tag */}
+                      <p className="text-[11px] text-gray-400 mb-4 font-medium bg-gray-50 px-2.5 py-1 rounded-full inline-block self-start">
+                        {review.product}
+                      </p>
+
+                      {/* Reviewer */}
+
+                      <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white bg-gradient-to-br ${review.color} shadow-sm flex-shrink-0`}
+                        >
+                          {review.avatar}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-900">
+                            {review.name}
+                          </p>
+                          <p className="text-xs text-gray-400">{review.city}</p>
+                        </div>
+
+                        <p className="ml-auto text-[10px] text-green-600 font-semibold bg-green-50 px-2 py-1 rounded-full flex-shrink-0 whitespace-nowrap hover:bg-green-100 transition-colors">
+                          {" "}
+                          ✓ Verified
                         </p>
-                        <p className="text-xs text-gray-400">{review.city}</p>
                       </div>
-                      <span className="ml-auto text-[10px] text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap">
-                        ✓ Verified
-                      </span>
                     </div>
-                  </div>
+                  </a>
                 </div>
               ))}
             </Slider>
