@@ -40,4 +40,5 @@ export default async function ShopPage() {
   }));
 
   return <ShopClient initialProducts={products} collections={collections} />;
+  
 }

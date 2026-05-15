@@ -72,13 +72,204 @@ function AccordionItem({ title, children, defaultOpen = false }) {
         />
       </button>
       <div
-        className={`overflow-hidden transition-all duration-300 ${open ? "max-h-96 pb-4" : "max-h-0"}`}
+        className={`overflow-hidden transition-all duration-300 ${open ? "max-h-[600px] pb-4" : "max-h-0"}`}
       >
         <div className="text-sm text-gray-600 leading-relaxed">{children}</div>
       </div>
     </div>
   );
 }
+
+/**
+ * Parses Shopify's descriptionHtml into structured sections.
+ * Shopify formats descriptions with <p><strong>Section Title</strong></p> headers
+ * followed by <ul> bullet lists or <p> paragraphs.
+ *
+ * Falls back gracefully to plain text if no HTML is available.
+ */
+function parseDescriptionHtml(html) {
+  if (!html || typeof window === "undefined") return null;
+
+  // Parse the HTML string into a DOM tree (client-side only)
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const body = doc.body;
+
+  const sections = [];
+  let currentSection = null;
+
+  for (const node of body.childNodes) {
+    if (node.nodeType !== 1) continue; // skip text nodes
+    const tag = node.tagName.toLowerCase();
+
+    if (tag === "p") {
+      const strongEl = node.querySelector("strong");
+      const text = node.textContent.trim();
+
+      if (!text) continue;
+
+      // Check if this <p> is a section header (only contains a <strong> tag)
+      if (
+        strongEl &&
+        strongEl.textContent.trim() === text
+      ) {
+        // New section header
+        currentSection = { title: text, items: [], note: null };
+        sections.push(currentSection);
+      } else {
+        // Plain paragraph — treat as a note or body text
+        if (currentSection) {
+          currentSection.note = text;
+        } else {
+          // No current section yet — create an unnamed one
+          currentSection = { title: null, items: [], note: text };
+          sections.push(currentSection);
+        }
+      }
+    } else if (tag === "ul" || tag === "ol") {
+      const bullets = [...node.querySelectorAll("li")].map((li) =>
+        li.textContent.trim()
+      );
+      if (currentSection) {
+        currentSection.items.push(...bullets);
+      } else {
+        currentSection = { title: null, items: bullets, note: null };
+        sections.push(currentSection);
+      }
+    }
+  }
+
+  return sections.length > 0 ? sections : null;
+}
+
+/**
+ * Renders the Shopify description HTML as structured sections
+ * with section headers, bullet lists, and notes.
+ * Falls back to plain-text paragraph rendering if HTML parsing fails.
+ */
+function DescriptionContent({ descriptionHtml, descriptionText }) {
+  const sections = useMemo(
+    () => (descriptionHtml ? parseDescriptionHtml(descriptionHtml) : null),
+    [descriptionHtml]
+  );
+
+  if (sections && sections.length > 0) {
+    // Separate the trailing note (untitled section with no bullets) from main sections
+    const mainSections = sections.filter(
+      (s) => s.title || s.items.length > 0
+    );
+    const trailingNotes = sections.filter(
+      (s) => !s.title && s.items.length === 0 && s.note
+    );
+
+    return (
+      <div className="space-y-5">
+        {mainSections.map((section, i) => (
+          <div key={i}>
+            {section.title && (
+              <p className="text-sm font-bold text-gray-900 mb-2">
+                {section.title}
+              </p>
+            )}
+            {section.items.length > 0 && (
+              <ul className="space-y-1.5 ml-1">
+                {section.items.map((item, j) => (
+                  <li key={j} className="flex items-start gap-2.5 text-sm text-gray-600">
+                    <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {/* Inline note within a section */}
+            {section.note && (
+              <p className="text-xs text-gray-400 mt-2">{section.note}</p>
+            )}
+          </div>
+        ))}
+
+        {/* Trailing note(s) — rendered small and muted, like the Shopify disclaimer */}
+        {trailingNotes.length > 0 && (
+          <div className="border-t border-gray-100 pt-3 space-y-1">
+            {trailingNotes.map((n, i) => (
+              <p key={i} className="text-xs text-gray-400 leading-relaxed">
+                {n.note}
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+
+// Fallback: plain text
+// Fallback for plain text descriptions
+const text = descriptionText || "";
+
+if (!text.trim()) return null;
+
+// Detect common Shopify headings
+const headings = [
+  "Product Details",
+  "Size",
+  "Material & Wash",
+  "Note:-",
+];
+
+let formattedSections = [];
+let remainingText = text;
+
+headings.forEach((heading, index) => {
+  const currentIndex = remainingText.indexOf(heading);
+
+  if (currentIndex !== -1) {
+    const nextHeading = headings
+      .slice(index + 1)
+      .map((h) => ({
+        heading: h,
+        index: remainingText.indexOf(h),
+      }))
+      .filter((h) => h.index !== -1)
+      .sort((a, b) => a.index - b.index)[0];
+
+    const content = nextHeading
+      ? remainingText
+          .substring(
+            currentIndex + heading.length,
+            nextHeading.index
+          )
+          .trim()
+      : remainingText.substring(currentIndex + heading.length).trim();
+
+    formattedSections.push({
+      title: heading.replace(":-", ""),
+      content,
+    });
+  }
+});
+
+return (
+  <div className="space-y-5">
+    {formattedSections.map((section, i) => (
+      <div key={i}>
+        <h4 className="text-sm font-semibold text-gray-900 mb-2">
+          {section.title}
+        </h4>
+
+        {section.title === "Note" ? (
+          <p className="text-xs text-gray-400 leading-relaxed">
+            {section.content}
+          </p>
+        ) : (
+          <p className="text-sm text-gray-600 leading-relaxed">
+            {section.content}
+          </p>
+        )}
+      </div>
+    ))}
+  </div>
+);}
 
 export default function ProductDetail({ product, related }) {
   const { addItem } = useCart();
@@ -156,8 +347,6 @@ export default function ProductDetail({ product, related }) {
   const fullStars = Math.floor(rating);
   const hasHalf = rating - fullStars >= 0.5;
   const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
-
-  const descLines = (product.description || "").split(/\n+/).filter(Boolean);
 
   return (
     <div className="min-h-screen bg-white">
@@ -365,55 +554,6 @@ export default function ProductDetail({ product, related }) {
               )}
             </div>
 
-            {/* ── Removed: stock indicator ── */}
-
-            {/* Size selector */}
-            {/* {product.variants && product.variants.length > 0 && (
-              <div id="size-selector" className="mb-5">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-sm font-semibold text-gray-900">
-                    {product.variants.length === 1 ? "Size" : "Select Size"}
-                  </span>
-                  {product.variants.length > 1 && (
-                    <button className="text-xs text-[var(--secondary)] underline underline-offset-2 hover:no-underline">
-                      Size Guide
-                    </button>
-                  )}
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  {product.variants.map((v) => (
-                    <button
-                      key={v.size}
-                      onClick={() => {
-                        setSelectedSize(v.size);
-                        setSizeError(false);
-                      }}
-                      disabled={v.stock === 0}
-                      className={`px-4 py-2.5 rounded-xl text-sm font-medium border-2 transition-all min-w-[50px] ${
-                        selectedSize === v.size
-                          ? "border-[var(--secondary)] bg-[var(--secondary)] text-white shadow-sm"
-                          : v.stock === 0
-                            ? "border-gray-100 text-gray-300 bg-gray-50 cursor-not-allowed line-through"
-                            : "border-gray-200 text-gray-700 hover:border-[var(--secondary)] hover:text-[var(--secondary)]"
-                      }`}
-                    >
-                      {v.size}
-                      {v.stock <= 3 && v.stock > 0 && (
-                        <span className="block text-[9px] leading-none mt-0.5 text-amber-500">
-                          {v.stock} left
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                {sizeError && (
-                  <p className="text-xs text-[var(--secondary)] mt-2 font-medium">
-                    Please select a size before adding to bag
-                  </p>
-                )}
-              </div>
-            )} */}
-
             {/* Qty + Add to cart */}
             <div className="flex gap-3 mb-5">
               <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-2 flex-shrink-0">
@@ -501,42 +641,13 @@ export default function ProductDetail({ product, related }) {
               ))}
             </div>
 
-            {/* ── Accordion tabs (replaces old tab bar) ── */}
+            {/* ── Accordion tabs ── */}
             <div className="border-t border-gray-200">
               <AccordionItem title="Details" defaultOpen={true}>
-                <div className="space-y-0">
-                  {[
-                    ["Category", product.category],
-                    ["Fabric", product.fabric || "—"],
-                    ["Wash Care", product.washCare || "Dry Wash Only"],
-                    [
-                      "Includes",
-                      "Kurta (2.5m) · Bottom (2.5m) · Dupatta (2.25m)",
-                    ],
-                    ["Dispatch", "Ships within 2–3 business days"],
-                  ].map(([k, v]) => (
-                    <div
-                      key={k}
-                      className="flex justify-between py-2 border-b border-gray-50 last:border-0"
-                    >
-                      <span className="text-gray-400 font-medium text-xs">
-                        {k}
-                      </span>
-                      <span className="text-gray-700 text-right text-xs max-w-[60%]">
-                        {v}
-                      </span>
-                    </div>
-                  ))}
-                  {descLines.length > 0 && (
-                    <div className="pt-3 space-y-1.5">
-                      {descLines.map((line, i) => (
-                        <p key={i} className="text-gray-600 text-sm">
-                          {line}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <DescriptionContent
+                  descriptionHtml={product.descriptionHtml}
+                  descriptionText={product.description}
+                />
               </AccordionItem>
 
               <AccordionItem title="Offers">
@@ -628,11 +739,9 @@ export default function ProductDetail({ product, related }) {
           </div>
         </div>
 
-        {/* ── Related Products ── */}
         {/* ── You May Also Like ── */}
         {related && related.length > 0 && (
           <div className="mt-20 sm:mt-24">
-            {/* Section header */}
             <div className="flex items-end justify-between mb-8 sm:mb-10">
               <div>
                 <p className="text-xs text-[var(--secondary)] font-semibold tracking-widest uppercase mb-1">
@@ -653,7 +762,6 @@ export default function ProductDetail({ product, related }) {
               </Link>
             </div>
 
-            {/* Product grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
               {related.map((p) => {
                 const relDiscount =
@@ -669,7 +777,6 @@ export default function ProductDetail({ product, related }) {
                     key={p.id || p.handle}
                     className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-300"
                   >
-                    {/* Image */}
                     <div
                       className="relative overflow-hidden bg-gray-100"
                       style={{ aspectRatio: "5/7" }}
@@ -687,8 +794,6 @@ export default function ProductDetail({ product, related }) {
                           👗
                         </div>
                       )}
-
-                      {/* Discount badge */}
                       {relDiscount && (
                         <div className="absolute top-2 left-2 z-10">
                           <span className="px-2 py-0.5 bg-[var(--secondary)] text-white text-[10px] font-bold rounded-full shadow-sm">
@@ -696,8 +801,6 @@ export default function ProductDetail({ product, related }) {
                           </span>
                         </div>
                       )}
-
-                      {/* Quick view overlay on hover */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 z-10" />
                       <div className="absolute bottom-0 left-0 right-0 z-20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                         <div className="bg-white/95 backdrop-blur-sm py-2.5 text-center text-xs font-semibold text-gray-900 flex items-center justify-center gap-1.5">
@@ -707,7 +810,6 @@ export default function ProductDetail({ product, related }) {
                       </div>
                     </div>
 
-                    {/* Info */}
                     <div className="p-3 sm:p-3.5">
                       {p.category && (
                         <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5 font-medium truncate">
@@ -724,12 +826,10 @@ export default function ProductDetail({ product, related }) {
                           </span>
                           {p.compareAtPrice && p.compareAtPrice > p.price && (
                             <span className="text-[10px] text-gray-400 line-through">
-                              ₹
-                              {Number(p.compareAtPrice).toLocaleString("en-IN")}
+                              ₹{Number(p.compareAtPrice).toLocaleString("en-IN")}
                             </span>
                           )}
                         </div>
-                        {/* Mini star rating */}
                         <div className="flex gap-0.5 flex-shrink-0">
                           {[...Array(5)].map((_, i) => (
                             <Star
@@ -750,7 +850,6 @@ export default function ProductDetail({ product, related }) {
               })}
             </div>
 
-            {/* Mobile "View Collection" button */}
             <div className="mt-8 text-center sm:hidden">
               <Link
                 href={`/collections/${product.collections?.[0] || "all"}`}

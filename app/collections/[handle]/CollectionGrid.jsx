@@ -65,7 +65,7 @@ export default function CollectionGrid({ products }) {
             {hasMore && (
               <button
                 onClick={handleViewMore}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[var(--secondary)] text-white rounded-xl text-sm font-medium hover:bg-[#c03535] transition-all active:scale-95"
+                className="flex items-center gap-2 px-6 py-2.5 bg-[var(--secondary)] text-white rounded-xl text-sm font-medium hover:bg-[#c03535] transition-all active:scale-95 cursor-pointer"
               >
                 <ChevronDown size={15} />
                 View More
@@ -77,7 +77,7 @@ export default function CollectionGrid({ products }) {
             {canCollapse && (
               <button
                 onClick={handleViewLess}
-                className="flex items-center gap-2 px-6 py-2.5 bg-white text-gray-600 border border-gray-200 rounded-xl text-sm font-medium hover:border-gray-300 hover:bg-gray-50 transition-all active:scale-95"
+                className="flex items-center gap-2 px-6 py-2.5 bg-white text-gray-600 border border-gray-200 rounded-xl text-sm font-medium hover:border-gray-300 hover:bg-gray-50 transition-all active:scale-95 cursor-pointer"
               >
                 <ChevronUp size={15} />
                 View Less

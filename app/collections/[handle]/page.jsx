@@ -160,7 +160,7 @@ export default async function CollectionPage({ params, searchParams }) {
             </p>
             <Link
               href="/shop"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--secondary)] text-white rounded-xl font-medium text-sm hover:bg-[#c03535] transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--secondary)] text-white rounded-xl font-medium text-sm hover:bg-[#c03535] transition-colors cursor-pointer"
             >
               Browse All Products
             </Link>

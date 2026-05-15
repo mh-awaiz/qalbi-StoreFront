@@ -1,11 +1,19 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import ProductCard from "../components/ProductCard";
 
 export default function ShopClient({ initialProducts, collections }) {
   const [search, setSearch] = useState("");
   const [selectedCollection, setSelectedCollection] = useState("");
   const [sort, setSort] = useState("newest");
+
+  // Added for view more/less functionality
+  const [visibleCount, setVisibleCount] = useState(12);
+
+  // Reset visible products when filters change
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [search, selectedCollection, sort]);
 
   const filtered = useMemo(() => {
     let list = [...initialProducts];
@@ -16,12 +24,14 @@ export default function ShopClient({ initialProducts, collections }) {
         (p) =>
           p.title.toLowerCase().includes(q) ||
           p.category?.toLowerCase().includes(q) ||
-          p.tags?.some((t) => t.toLowerCase().includes(q)),
+          p.tags?.some((t) => t.toLowerCase().includes(q))
       );
     }
 
     if (selectedCollection) {
-      list = list.filter((p) => p.collections?.includes(selectedCollection));
+      list = list.filter((p) =>
+        p.collections?.includes(selectedCollection)
+      );
     }
 
     switch (sort) {
@@ -38,6 +48,9 @@ export default function ShopClient({ initialProducts, collections }) {
 
     return list;
   }, [initialProducts, search, selectedCollection, sort]);
+
+  // Show limited products initially
+  const displayedProducts = filtered.slice(0, visibleCount);
 
   return (
     <div className="min-h-screen bg-white">
@@ -122,11 +135,34 @@ export default function ShopClient({ initialProducts, collections }) {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {filtered.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {displayedProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+
+            {/* View More / View Less */}
+            {filtered.length > 12 && (
+              <div className="flex justify-center mt-10">
+                {visibleCount < filtered.length ? (
+                  <button
+                    onClick={() => setVisibleCount((prev) => prev + 12)}
+                    className="px-6 py-3 bg-[var(--secondary)] text-white rounded-xl text-sm font-medium hover:bg-[#c03535] transition-colors cursor-pointer"
+                  >
+                    View More
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setVisibleCount(12)}
+                    className="px-6 py-3 border border-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    View Less
+                  </button>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
