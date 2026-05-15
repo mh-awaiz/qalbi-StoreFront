@@ -1,7 +1,13 @@
 "use client";
 import { useState, useMemo } from "react";
+import { useEffect } from "react";
 import { useCart } from "../../context/CartContext";
 import Link from "next/link";
+import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import "swiper/css/pagination";
+import { Pagination } from "swiper/modules";
+
 import {
   ShoppingBag,
   Heart,
@@ -109,10 +115,7 @@ function parseDescriptionHtml(html) {
       if (!text) continue;
 
       // Check if this <p> is a section header (only contains a <strong> tag)
-      if (
-        strongEl &&
-        strongEl.textContent.trim() === text
-      ) {
+      if (strongEl && strongEl.textContent.trim() === text) {
         // New section header
         currentSection = { title: text, items: [], note: null };
         sections.push(currentSection);
@@ -128,7 +131,7 @@ function parseDescriptionHtml(html) {
       }
     } else if (tag === "ul" || tag === "ol") {
       const bullets = [...node.querySelectorAll("li")].map((li) =>
-        li.textContent.trim()
+        li.textContent.trim(),
       );
       if (currentSection) {
         currentSection.items.push(...bullets);
@@ -150,16 +153,14 @@ function parseDescriptionHtml(html) {
 function DescriptionContent({ descriptionHtml, descriptionText }) {
   const sections = useMemo(
     () => (descriptionHtml ? parseDescriptionHtml(descriptionHtml) : null),
-    [descriptionHtml]
+    [descriptionHtml],
   );
 
   if (sections && sections.length > 0) {
     // Separate the trailing note (untitled section with no bullets) from main sections
-    const mainSections = sections.filter(
-      (s) => s.title || s.items.length > 0
-    );
+    const mainSections = sections.filter((s) => s.title || s.items.length > 0);
     const trailingNotes = sections.filter(
-      (s) => !s.title && s.items.length === 0 && s.note
+      (s) => !s.title && s.items.length === 0 && s.note,
     );
 
     return (
@@ -174,7 +175,10 @@ function DescriptionContent({ descriptionHtml, descriptionText }) {
             {section.items.length > 0 && (
               <ul className="space-y-1.5 ml-1">
                 {section.items.map((item, j) => (
-                  <li key={j} className="flex items-start gap-2.5 text-sm text-gray-600">
+                  <li
+                    key={j}
+                    className="flex items-start gap-2.5 text-sm text-gray-600"
+                  >
                     <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
                     {item}
                   </li>
@@ -202,74 +206,110 @@ function DescriptionContent({ descriptionHtml, descriptionText }) {
     );
   }
 
+  // Fallback: plain text
+  // Fallback for plain text descriptions
+  const text = descriptionText || "";
 
-// Fallback: plain text
-// Fallback for plain text descriptions
-const text = descriptionText || "";
+  if (!text.trim()) return null;
 
-if (!text.trim()) return null;
+  // Detect common Shopify headings
+  const headings = ["Product Details", "Size", "Material & Wash", "Note:-"];
 
-// Detect common Shopify headings
-const headings = [
-  "Product Details",
-  "Size",
-  "Material & Wash",
-  "Note:-",
-];
+  let formattedSections = [];
+  let remainingText = text;
 
-let formattedSections = [];
-let remainingText = text;
+  headings.forEach((heading, index) => {
+    const currentIndex = remainingText.indexOf(heading);
 
-headings.forEach((heading, index) => {
-  const currentIndex = remainingText.indexOf(heading);
+    if (currentIndex !== -1) {
+      const nextHeading = headings
+        .slice(index + 1)
+        .map((h) => ({
+          heading: h,
+          index: remainingText.indexOf(h),
+        }))
+        .filter((h) => h.index !== -1)
+        .sort((a, b) => a.index - b.index)[0];
 
-  if (currentIndex !== -1) {
-    const nextHeading = headings
-      .slice(index + 1)
-      .map((h) => ({
-        heading: h,
-        index: remainingText.indexOf(h),
-      }))
-      .filter((h) => h.index !== -1)
-      .sort((a, b) => a.index - b.index)[0];
+      const content = nextHeading
+        ? remainingText
+            .substring(currentIndex + heading.length, nextHeading.index)
+            .trim()
+        : remainingText.substring(currentIndex + heading.length).trim();
 
-    const content = nextHeading
-      ? remainingText
-          .substring(
-            currentIndex + heading.length,
-            nextHeading.index
-          )
-          .trim()
-      : remainingText.substring(currentIndex + heading.length).trim();
+      formattedSections.push({
+        title: heading.replace(":-", ""),
+        content,
+      });
+    }
+  });
 
-    formattedSections.push({
-      title: heading.replace(":-", ""),
-      content,
-    });
-  }
-});
+  return (
+    <div className="space-y-5">
+      {formattedSections.map((section, i) => (
+        <div key={i}>
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">
+            {section.title}
+          </h4>
 
-return (
-  <div className="space-y-5">
-    {formattedSections.map((section, i) => (
-      <div key={i}>
-        <h4 className="text-sm font-semibold text-gray-900 mb-2">
-          {section.title}
-        </h4>
+          {section.title === "Note" ? (
+            <p className="text-xs text-gray-400 leading-relaxed">
+              {section.content}
+            </p>
+          ) : (
+            (() => {
+              let items = [];
 
-        {section.title === "Note" ? (
-          <p className="text-xs text-gray-400 leading-relaxed">
-            {section.content}
-          </p>
-        ) : (
-          <p className="text-sm text-gray-600 leading-relaxed">
-            {section.content}
-          </p>
-        )}
-      </div>
-    ))}
-  </div>
-);}
+              // For Material & Wash
+              if (section.title === "Material & Wash") {
+                items = section.content
+                  .split(
+                    /(?=Dry Wash|Hand Wash|Machine Wash|Cotton|Silk|Linen|Muslin|Blend)/i,
+                  )
+                  .filter((item) => item.trim());
+              }
+
+              // For Size
+              else if (section.title === "Size") {
+                items = section.content
+                  .split(/(?=One Size|XS|S|M|L|XL|XXL|XXXL)/i)
+                  .filter((item) => item.trim());
+              }
+
+              // For Product Details
+              else {
+                items = section.content
+                  .split(". ")
+                  .filter((item) => item.trim());
+              }
+
+              return (
+                <ul className="space-y-2 ml-1">
+                  {items.map((item, idx) => (
+                    <li
+                      key={idx}
+                      className="flex items-start gap-2 text-sm text-gray-600 leading-relaxed"
+                    >
+                      <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
+
+                      <span>
+                        {item.trim()}
+                        {!item.trim().endsWith(".") &&
+                        section.title === "Product Details"
+                          ? "."
+                          : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              );
+            })()
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function ProductDetail({ product, related }) {
   const { addItem } = useCart();
@@ -282,12 +322,27 @@ export default function ProductDetail({ product, related }) {
   const [sizeError, setSizeError] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Move images here first
+  const images = product.images || [];
+
+  useEffect(() => {
+    if (!images?.length) return;
+
+    images.forEach((img, index) => {
+      if (index === 0) return;
+
+      const preloadImg = new window.Image();
+
+      // preload optimized Shopify image size
+      preloadImg.src = `${img}&width=1200`;
+    });
+  }, [images]);
+
   const { rating, reviews } = useMemo(
     () => getProductStats(product.id || product.handle),
     [product.id, product.handle],
   );
 
-  const images = product.images || [];
   const discount = product.compareAtPrice
     ? Math.round(
         ((product.compareAtPrice - product.price) / product.compareAtPrice) *
@@ -388,15 +443,62 @@ export default function ProductDetail({ product, related }) {
         <div className="grid md:grid-cols-2 gap-8 lg:gap-16">
           {/* ── Images — 5:7 aspect ratio ── */}
           <div className="space-y-3">
+            {/* Mobile Swiper */}
+            <div className="block md:hidden">
+              {images.length > 0 ? (
+                <Swiper
+                  modules={[Pagination]}
+                  pagination={{ clickable: true }}
+                  spaceBetween={10}
+                  slidesPerView={1}
+                  onSlideChange={(swiper) => setImgIdx(swiper.activeIndex)}
+                  className="rounded-2xl overflow-hidden"
+                >
+                  {images.map((img, i) => (
+                    <SwiperSlide key={i}>
+                      <div
+                        className="relative bg-gray-100"
+                        style={{ aspectRatio: "5/7" }}
+                      >
+                        <Image
+                          src={`${img}&width=1000`}
+                          alt={`${product.title}-${i}`}
+                          fill
+                          priority={i === 0}
+                          quality={80}
+                          sizes="100vw"
+                          className="object-cover"
+                        />
+                      </div>
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+              ) : (
+                <div
+                  className="w-full flex items-center justify-center text-gray-300 text-5xl bg-gray-100 rounded-2xl"
+                  style={{ aspectRatio: "5/7" }}
+                >
+                  👗
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Image Viewer */}
             <div
-              className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gray-100 group"
+              className="hidden md:block relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gray-100 group"
               style={{ aspectRatio: "5/7" }}
             >
               {images.length > 0 ? (
-                <img
-                  src={images[imgIdx]}
+                <Image
+                  src={`${images[imgIdx]}&width=1200`}
                   alt={product.title}
-                  className="w-full h-full object-cover transition-opacity duration-300"
+                  fill
+                  priority={imgIdx === 0}
+                  quality={85}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  placeholder="blur"
+                  blurDataURL={images[imgIdx]}
+                  className="object-cover transition-opacity duration-300"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-300 text-5xl">
@@ -412,6 +514,7 @@ export default function ProductDetail({ product, related }) {
                   >
                     <ChevronLeft size={18} />
                   </button>
+
                   <button
                     onClick={nextImg}
                     className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white z-10"
@@ -421,22 +524,11 @@ export default function ProductDetail({ product, related }) {
                 </>
               )}
 
-              <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-                {discount && (
+              {discount && (
+                <div className="absolute top-3 left-3 z-10">
                   <span className="px-2.5 py-1 bg-[var(--secondary)] text-white text-[11px] font-bold rounded-full shadow-sm">
                     -{discount}% OFF
                   </span>
-                )}
-                {product.isFeatured && (
-                  <span className="px-2.5 py-1 bg-[#1a1a1a] text-white text-[11px] font-medium rounded-full">
-                    Featured
-                  </span>
-                )}
-              </div>
-
-              {images.length > 1 && (
-                <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/40 text-white text-[10px] font-medium rounded-full backdrop-blur-sm z-10">
-                  {imgIdx + 1}/{images.length}
                 </div>
               )}
             </div>
@@ -456,10 +548,9 @@ export default function ProductDetail({ product, related }) {
                     style={{ aspectRatio: "5/7" }}
                   >
                     <Image
-                      src={img}
+                      src={`${img}&width=250`}
                       alt=""
                       fill
-                      sizes="120px"
                       className="object-cover"
                     />
                   </button>
@@ -826,7 +917,8 @@ export default function ProductDetail({ product, related }) {
                           </span>
                           {p.compareAtPrice && p.compareAtPrice > p.price && (
                             <span className="text-[10px] text-gray-400 line-through">
-                              ₹{Number(p.compareAtPrice).toLocaleString("en-IN")}
+                              ₹
+                              {Number(p.compareAtPrice).toLocaleString("en-IN")}
                             </span>
                           )}
                         </div>

@@ -12,42 +12,42 @@ const slides = [
   {
     id: 1,
     video:
-      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1774946607/video2_tgy7re.mp4",
+      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778875272/hero_video_q1sk8n.mp4",
     poster:
-      "https://cdn.shopify.com/s/files/1/0879/0366/6340/files/Front2.jpg?v=1762569597",
+      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778875272/hero_video_q1sk8n.mp4",
     accent: "New Collection",
     headline: "Dressed in\nGrace",
     sub: "Timeless embroidery. Premium fabrics. Every occasion.",
     cta: "Shop New Arrivals",
     ctaLink: "/shop",
     secondaryCta: "View Collections",
-    secondaryLink: "/collections/new-arrivals",
+    secondaryLink: "/shop",
   },
   {
     id: 2,
     video:
-      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1774946601/video3_py8nq8.mp4",
+      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778876376/Bestseller_nfmtku.mp4",
     poster:
-      "https://cdn.shopify.com/s/files/1/0879/0366/6340/files/IMG_2644.jpg?v=1746646118",
-    accent: "Bestsellers",
-    headline: "Pakistani\nElegance",
+      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778876376/Bestseller_nfmtku.mp4",
+    accent: "Hand Picked For You",
+    headline: "Bestseller",
     sub: "Hand-crafted suits for every celebration and gathering.",
     cta: "Explore Suits",
-    ctaLink: "/collections/pakistani-suits",
+    ctaLink: "/collections/bestseller",
     secondaryCta: "All Collections",
     secondaryLink: "/shop",
   },
   {
     id: 3,
     video:
-      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1774946599/video1_in4ec3.mp4",
+      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778875272/dress_material_zj2bpi.mp4",
     poster:
-      "https://cdn.shopify.com/s/files/1/0879/0366/6340/files/IMG_2199.jpg?v=1762569489",
+      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778875272/dress_material_zj2bpi.mp4",
     accent: "Premium Pick",
-    headline: "Chiffon &\nSilk Dreams",
+    headline: "Dress Material",
     sub: "Luxurious fabrics curated by master craftspeople.",
     cta: "View Dress Materials",
-    ctaLink: "/collections/dress-materials",
+    ctaLink: "/collections/dress-material",
     secondaryCta: "Browse All",
     secondaryLink: "/shop",
   },
@@ -75,7 +75,7 @@ export default function HeroSection() {
   // Autoplay timer
   useEffect(() => {
     clearInterval(timerRef.current);
-    timerRef.current = setInterval(next, 3000);
+    timerRef.current = setInterval(next, 5000);
     return () => clearInterval(timerRef.current);
   }, [current, transitioning]);
 

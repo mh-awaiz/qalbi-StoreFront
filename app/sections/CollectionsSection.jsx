@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { FiArrowRight, FiTruck, FiRefreshCw, FiShield } from "react-icons/fi";
 import { MdDiamond } from "react-icons/md";
@@ -8,29 +9,29 @@ const FALLBACK_COLLECTIONS = [
   {
     name: "Dress Materials",
     description: "Chiffon, Georgette, Silk & more",
-    handle: "dress-materials",
+    handle: "dress-material",
     image:
       "https://cdn.shopify.com/s/files/1/0879/0366/6340/files/Front2.jpg?v=1762569597",
     video:
-      "https://res.cloudinary.com/dpsfw0apo/video/upload/v1773997701/14476184_1920_1080_100fps_pxwhyc.mp4",
+      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778876814/Suit_Sets_qpat9k.mp4",
   },
   {
-    name: "Pakistani Suits",
+    name: "Chikankari",
     description: "Elegant embroidered kameez sets",
-    handle: "pakistani-suits",
+    handle: "chikankari-kurti",
     image:
       "https://cdn.shopify.com/s/files/1/0879/0366/6340/files/IMG_2644.jpg?v=1746646118",
     video:
-      "https://res.cloudinary.com/dpsfw0apo/video/upload/v1773997701/14476184_1920_1080_100fps_pxwhyc.mp4",
+      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778876895/CHIKANKARI_rzl3bz.mp4",
   },
   {
-    name: "Salwar Suits",
+    name: "Cotten Worid",
     description: "Printed organza & cotton silk",
-    handle: "salwar-suits",
+    handle: "premium-collection",
     image:
       "https://cdn.shopify.com/s/files/1/0879/0366/6340/files/Daman.jpg?v=1747405900",
     video:
-      "https://res.cloudinary.com/dpsfw0apo/video/upload/v1773997701/14476184_1920_1080_100fps_pxwhyc.mp4",
+      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778877239/cotten_k94pig.mp4",
   },
 ];
 
@@ -86,12 +87,15 @@ function CollectionCard({ col, idx, layout }) {
     >
       {/* Poster image */}
       {col.image && (
-        <img
+        <Image
           src={col.image}
           alt={col.name}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700"
-          style={{ transform: hovering ? "scale(1.07)" : "scale(1)" }}
-          loading={idx === 0 ? "eager" : "lazy"}
+          fill
+          priority={idx === 0}
+          sizes="(max-width: 640px) 100vw, 50vw"
+          className={`absolute inset-0 object-cover transition-transform duration-700 ${
+            hovering ? "scale-105" : "scale-100"
+          }`}
         />
       )}
 
@@ -239,10 +243,20 @@ export default function CollectionsSection() {
     categories.length > 0
       ? categories.map((cat, i) => ({
           ...cat,
-          image: FALLBACK_COLLECTIONS[i]?.image || null,
-          video: FALLBACK_COLLECTIONS[i]?.video || null,
+
+          // force custom collection route
+          handle: FALLBACK_COLLECTIONS[i]?.handle || cat.handle,
+
+          // force custom title
+          name: FALLBACK_COLLECTIONS[i]?.name || cat.name,
+
+          // force custom description
           description:
-            cat.description || FALLBACK_COLLECTIONS[i]?.description || "",
+            FALLBACK_COLLECTIONS[i]?.description || cat.description || "",
+
+          // force custom media
+          image: FALLBACK_COLLECTIONS[i]?.image || cat.image || null,
+          video: FALLBACK_COLLECTIONS[i]?.video || null,
         }))
       : FALLBACK_COLLECTIONS;
 

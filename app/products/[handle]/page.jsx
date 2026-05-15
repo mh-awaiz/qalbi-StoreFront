@@ -95,22 +95,42 @@ async function getProduct(handle) {
 }
 
 export async function generateMetadata({ params }) {
-  const data = await getProduct(params.handle);
-  if (!data) return { title: "Product Not Found — Qalbi Couture" };
+  const { handle } = await params; // FIX
+
+  const data = await getProduct(handle);
+
+  if (!data) {
+    return {
+      title: "Product Not Found — Qalbi Couture",
+    };
+  }
+
   const { product } = data;
+
   return {
     title: `${product.title} — Qalbi Couture`,
     description: product.description?.slice(0, 160),
     openGraph: {
       title: product.title,
       description: product.description?.slice(0, 160),
-      images: product.images?.[0] ? [{ url: product.images[0] }] : [],
+      images: product.images?.[0]
+        ? [{ url: product.images[0] }]
+        : [],
     },
   };
 }
 
 export default async function ProductPage({ params }) {
-  const data = await getProduct(params.handle);
+  const { handle } = await params; // FIX
+
+  const data = await getProduct(handle);
+
   if (!data) notFound();
-  return <ProductDetail product={data.product} related={data.related} />;
+
+  return (
+    <ProductDetail
+      product={data.product}
+      related={data.related}
+    />
+  );
 }
