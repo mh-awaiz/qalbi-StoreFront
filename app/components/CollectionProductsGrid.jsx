@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import ProductCard from "";
+import ProductCard from "./ProductCard";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 const INITIAL_VISIBLE = 20;
@@ -30,7 +30,7 @@ export default function CollectionProductsGrid({ products }) {
     <div id="collection-grid">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
         {visibleProducts.map((product) => (
-          <ProductCard key={product._id} product={product} />
+          <ProductCard key={product.id || product.handle} product={product} />
         ))}
       </div>
 

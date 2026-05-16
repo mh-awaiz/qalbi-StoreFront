@@ -61,8 +61,8 @@ export default function ProductCard({
   );
 
   const handleAddToCart = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     const firstVariant =
       product.variants?.find((v) => v.available) || product.variants?.[0];
     addItem({
@@ -115,9 +115,9 @@ export default function ProductCard({
     <div
       className={`product-card group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${className}`}
     >
-      <Link href={href} className="block">
-        {/* ── Image ── */}
-        <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+      {/* ── Image area (relative container for overlays) ── */}
+      <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+        <Link href={href} className="block absolute inset-0 z-0">
           {currentImage ? (
             <Image
               src={currentImage}
@@ -134,62 +134,64 @@ export default function ProductCard({
               👗
             </div>
           )}
+        </Link>
 
-          {/* Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
-            {discount && (
-              <span className="px-2 py-0.5 bg-[var(--secondary)] text-white text-[10px] font-bold rounded-full shadow-sm">
-                -{discount}%
-              </span>
-            )}
-            {product.isFeatured && !discount && (
-              <span className="px-2 py-0.5 bg-gray-900 text-white text-[10px] font-medium rounded-full">
-                Featured
-              </span>
-            )}
-          </div>
-
-          {/* Wishlist */}
-          <button
-            onClick={handleWishlist}
-            className="absolute top-2 right-2 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200"
-            style={{
-              transform: heartAnim ? "scale(1.35)" : undefined,
-              transition: "transform 0.2s cubic-bezier(0.34,1.56,0.64,1)",
-            }}
-            title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          >
-            {wishlisted ? (
-              <FaHeart size={13} className="text-[var(--secondary)]" />
-            ) : (
-              <FiHeart size={13} className="text-gray-500" />
-            )}
-          </button>
-
-          {/* Quick add */}
-          <div className="absolute bottom-0 left-0 right-0 z-10 sm:translate-y-full sm:group-hover:translate-y-0 transition-transform duration-300">
-            <button
-              onClick={handleAddToCart}
-              className={`w-full py-2.5 sm:py-3 text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
-                added
-                  ? "bg-green-500 text-white"
-                  : "bg-[var(--secondary)] text-white hover:bg-[#c03535]"
-              }`}
-            >
-              {added ? (
-                <>
-                  <FiCheck size={14} /> Added!
-                </>
-              ) : (
-                <>
-                  <FiShoppingBag size={14} /> Quick Add
-                </>
-              )}
-            </button>
-          </div>
+        {/* Badges */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1 z-10 pointer-events-none">
+          {discount && (
+            <span className="px-2 py-0.5 bg-[var(--secondary)] text-white text-[10px] font-bold rounded-full shadow-sm">
+              -{discount}%
+            </span>
+          )}
+          {product.isFeatured && !discount && (
+            <span className="px-2 py-0.5 bg-gray-900 text-white text-[10px] font-medium rounded-full">
+              Featured
+            </span>
+          )}
         </div>
 
-        {/* ── Info ── */}
+        {/* Wishlist button */}
+        <button
+          onClick={handleWishlist}
+          className="absolute top-2 right-2 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200"
+          style={{
+            transform: heartAnim ? "scale(1.35)" : undefined,
+            transition: "transform 0.2s cubic-bezier(0.34,1.56,0.64,1)",
+          }}
+          title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+        >
+          {wishlisted ? (
+            <FaHeart size={13} className="text-[var(--secondary)]" />
+          ) : (
+            <FiHeart size={13} className="text-gray-500" />
+          )}
+        </button>
+
+        {/* Quick add button */}
+        <div className="absolute bottom-0 left-0 right-0 z-10 sm:translate-y-full sm:group-hover:translate-y-0 transition-transform duration-300">
+          <button
+            onClick={handleAddToCart}
+            className={`w-full py-2.5 sm:py-3 text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+              added
+                ? "bg-green-500 text-white"
+                : "bg-[var(--secondary)] text-white hover:bg-[#c03535]"
+            }`}
+          >
+            {added ? (
+              <>
+                <FiCheck size={14} /> Added!
+              </>
+            ) : (
+              <>
+                <FiShoppingBag size={14} /> Quick Add
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Info ── */}
+      <Link href={href} className="block">
         <div className="p-3.5 sm:p-4">
           <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5 font-medium truncate">
             {product.category || product.productType || "Ethnic Wear"}

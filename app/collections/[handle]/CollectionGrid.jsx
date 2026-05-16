@@ -31,7 +31,7 @@ export default function CollectionGrid({ products }) {
         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"
       >
         {visibleProducts.map((product) => (
-          <ProductCard key={product._id} product={product} />
+          <ProductCard key={product.id || product.handle} product={product} />
         ))}
       </div>
 

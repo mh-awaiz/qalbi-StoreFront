@@ -1,7 +1,43 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useEffect } from "react";
 import { useCart } from "../../context/CartContext";
+
+// ── Wishlist helpers (mirrors ProductCard logic) ──────────────────────────────
+function useWishlist(slug, productId) {
+  const [wishlisted, setWishlisted] = useState(false);
+
+  const sync = useCallback(() => {
+    try {
+      const w = JSON.parse(localStorage.getItem("qalbi_wishlist") || "[]");
+      setWishlisted(w.some((i) => i.slug === slug || i.productId === productId));
+    } catch {
+      setWishlisted(false);
+    }
+  }, [slug, productId]);
+
+  useEffect(() => {
+    sync();
+    window.addEventListener("wishlist-updated", sync);
+    return () => window.removeEventListener("wishlist-updated", sync);
+  }, [sync]);
+
+  const toggle = useCallback((product) => {
+    try {
+      const w = JSON.parse(localStorage.getItem("qalbi_wishlist") || "[]");
+      const idx = w.findIndex((i) => i.slug === slug || i.productId === productId);
+      const updated =
+        idx > -1
+          ? w.filter((_, i) => i !== idx)
+          : [...w, { ...product, savedAt: new Date().toISOString() }];
+      localStorage.setItem("qalbi_wishlist", JSON.stringify(updated));
+      window.dispatchEvent(new Event("wishlist-updated"));
+      setWishlisted(idx === -1);
+    } catch {}
+  }, [slug, productId]);
+
+  return { wishlisted, toggle };
+}
 import Link from "next/link";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
@@ -34,30 +70,34 @@ import {
 } from "react-icons/fi";
 
 function seededRandom(seed) {
-  let s = seed >>> 0 || 123456789;
+  // Use unsigned 32-bit seed; fallback if zero
+  let s = (seed >>> 0) || 123456789;
   return () => {
     s ^= s << 13;
     s ^= s >> 17;
     s ^= s << 5;
-    return (s >>> 0) / 0xffffffff;
+    // Divide by 2^32 so result is always strictly in [0, 1)
+    return (s >>> 0) / 0x100000000;
   };
 }
 
 function getProductStats(productId = "") {
   const str = String(productId);
-  const seed =
-    [...str].reduce(
-      (acc, c, i) => acc ^ (c.charCodeAt(0) * (i + 7) * 2654435761),
-      str.length * 1234567,
-    ) || 987654;
+  // Build seed without large-number overflow
+  let seed = str.length * 1234567;
+  for (let i = 0; i < str.length; i++) {
+    seed = (seed ^ (str.charCodeAt(i) * (i + 7))) >>> 0;
+  }
+  seed = seed || 987654;
+
   const rand = seededRandom(seed);
-  rand();
-  rand();
-  rand();
-  const steps = Math.floor(rand() * 16);
-  const rating = (4.0 + steps * 0.1).toFixed(1);
+  rand(); rand(); rand(); // warm up
+
+  // Clamp steps 0–9 so rating stays in [4.0, 4.9] — never causes star count overflow
+  const steps = Math.min(Math.floor(rand() * 10), 9);
+  const rating = parseFloat((4.0 + steps * 0.1).toFixed(1));
   const reviews = Math.floor(10 + rand() * 110);
-  return { rating: parseFloat(rating), reviews };
+  return { rating, reviews };
 }
 
 // Accordion item component
@@ -315,9 +355,9 @@ export default function ProductDetail({ product, related }) {
   const { addItem } = useCart();
 
   const [imgIdx, setImgIdx] = useState(0);
+  const [imgLoading, setImgLoading] = useState(false);
   const [selectedSize, setSelectedSize] = useState(null);
   const [qty, setQty] = useState(1);
-  const [wishlisted, setWishlisted] = useState(false);
   const [adding, setAdding] = useState(false);
   const [sizeError, setSizeError] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -325,16 +365,32 @@ export default function ProductDetail({ product, related }) {
   // Move images here first
   const images = product.images || [];
 
+  // Wishlist: use the same localStorage system as ProductCard
+  const { wishlisted, toggle: toggleWishlistFn } = useWishlist(
+    product.slug || product.handle,
+    product.id
+  );
+
+  const handleWishlist = () => {
+    toggleWishlistFn({
+      productId: product.id,
+      title: product.title,
+      slug: product.slug || product.handle,
+      image: images[0],
+      price: product.price,
+      compareAtPrice: product.compareAtPrice,
+    });
+  };
+
+  // Preload ALL images immediately using <link rel="preload"> for fastest switching
   useEffect(() => {
     if (!images?.length) return;
-
-    images.forEach((img, index) => {
-      if (index === 0) return;
-
-      const preloadImg = new window.Image();
-
-      // preload optimized Shopify image size
-      preloadImg.src = `${img}&width=1200`;
+    images.forEach((img) => {
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "image";
+      link.href = `${img}&width=1200`;
+      document.head.appendChild(link);
     });
   }, [images]);
 
@@ -374,16 +430,19 @@ export default function ProductDetail({ product, related }) {
       product.variants?.find(
         (v) => v.size === selectedSize || v.title === selectedSize,
       ) || product.variants?.[0];
-    addItem({
-      id: product.id,
-      variantId: variant?.id || product.id,
-      productId: product.id,
-      title: product.title,
-      price: variant?.price || product.price,
-      image: images[0] || "",
-      slug: product.slug || product.handle || "",
-      size: selectedSize || variant?.size || null,
-    });
+    // Add the item qty times (or pass qty if CartContext supports it)
+    for (let i = 0; i < qty; i++) {
+      addItem({
+        id: product.id,
+        variantId: variant?.id || product.id,
+        productId: product.id,
+        title: product.title,
+        price: variant?.price || product.price,
+        image: images[0] || "",
+        slug: product.slug || product.handle || "",
+        size: selectedSize || variant?.size || null,
+      });
+    }
     setTimeout(() => setAdding(false), 1800);
   };
 
@@ -399,9 +458,9 @@ export default function ProductDetail({ product, related }) {
     setImgIdx((i) => (i - 1 + images.length) % images.length);
   const nextImg = () => setImgIdx((i) => (i + 1) % images.length);
 
-  const fullStars = Math.floor(rating);
-  const hasHalf = rating - fullStars >= 0.5;
-  const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+  const fullStars = Math.min(Math.max(0, Math.floor(rating)), 5);
+  const hasHalf = rating - fullStars >= 0.5 && fullStars < 5;
+  const emptyStars = Math.max(0, 5 - fullStars - (hasHalf ? 1 : 0));
 
   return (
     <div className="min-h-screen bg-white">
@@ -489,17 +548,22 @@ export default function ProductDetail({ product, related }) {
               style={{ aspectRatio: "5/7" }}
             >
               {images.length > 0 ? (
-                <Image
-                  src={`${images[imgIdx]}&width=1200`}
-                  alt={product.title}
-                  fill
-                  priority={imgIdx === 0}
-                  quality={85}
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  placeholder="blur"
-                  blurDataURL={images[imgIdx]}
-                  className="object-cover transition-opacity duration-300"
-                />
+                <>
+                  {images.map((img, i) => (
+                    <Image
+                      key={i}
+                      src={`${img}&width=1200`}
+                      alt={i === 0 ? product.title : `${product.title} - view ${i + 1}`}
+                      fill
+                      priority={i === 0}
+                      quality={85}
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className={`object-cover absolute inset-0 transition-opacity duration-200 ${
+                        i === imgIdx ? "opacity-100" : "opacity-0"
+                      }`}
+                    />
+                  ))}
+                </>
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-300 text-5xl">
                   👗
@@ -645,6 +709,69 @@ export default function ProductDetail({ product, related }) {
               )}
             </div>
 
+            {/* ── Size Selector ── */}
+            {product.variants && product.variants.length > 0 && (
+              <div id="size-selector" className="mb-5">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-xs font-bold tracking-widest uppercase text-gray-700">
+                    Size
+                    {selectedSize && (
+                      <span className="ml-2 text-[var(--secondary)] font-semibold normal-case tracking-normal">
+                        — {selectedSize}
+                      </span>
+                    )}
+                  </span>
+                  {sizeError && (
+                    <span className="text-xs text-red-500 font-medium animate-pulse">
+                      Please select a size
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {product.variants.map((variant) => {
+                    const isSelected = selectedSize === variant.size;
+                    const isOutOfStock = variant.stock === 0;
+                    return (
+                      <button
+                        key={variant.id}
+                        onClick={() => {
+                          if (!isOutOfStock) {
+                            setSelectedSize(isSelected ? null : variant.size);
+                            setSizeError(false);
+                          }
+                        }}
+                        disabled={isOutOfStock}
+                        className={`relative min-w-[52px] px-3.5 py-2 rounded-xl border-2 text-sm font-semibold transition-all duration-150
+                          ${isSelected
+                            ? "border-[var(--secondary)] bg-[var(--secondary)] text-white shadow-md shadow-red-100"
+                            : isOutOfStock
+                              ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed line-through"
+                              : "border-gray-200 bg-white text-gray-700 hover:border-[var(--secondary)] hover:text-[var(--secondary)]"
+                          }
+                          ${sizeError && !isSelected ? "border-red-300" : ""}
+                        `}
+                      >
+                        {variant.size}
+                        {isOutOfStock && (
+                          <span className="absolute -top-1.5 -right-1.5 text-[9px] bg-gray-400 text-white rounded-full px-1">
+                            OOS
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedSize && (() => {
+                  const v = product.variants.find((x) => x.size === selectedSize);
+                  return v?.stock > 0 && v.stock <= 5 ? (
+                    <p className="mt-2 text-xs text-orange-500 font-medium">
+                      Only {v.stock} left in stock!
+                    </p>
+                  ) : null;
+                })()}
+              </div>
+            )}
+
             {/* Qty + Add to cart */}
             <div className="flex gap-3 mb-5">
               <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-2 flex-shrink-0">
@@ -685,7 +812,7 @@ export default function ProductDetail({ product, related }) {
               </button>
 
               <button
-                onClick={() => setWishlisted(!wishlisted)}
+                onClick={handleWishlist}
                 className="w-12 h-12 flex items-center justify-center border-2 border-gray-200 rounded-xl hover:border-[var(--secondary)] transition-colors flex-shrink-0"
                 aria-label="Add to wishlist"
               >
