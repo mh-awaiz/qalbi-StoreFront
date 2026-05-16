@@ -5,7 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 
 export default function CartDrawer() {
-  const { items, isOpen, closeCart, removeItem, updateQty, subtotal, totalItems } = useCart();
+  const {
+    items,
+    isOpen,
+    closeCart,
+    removeItem,
+    updateQty,
+    subtotal,
+    totalItems,
+  } = useCart();
 
   const shippingFree = subtotal >= 999;
   const shippingCharge = shippingFree ? 0 : 99;
@@ -62,7 +70,7 @@ export default function CartDrawer() {
         {shippingFree && items.length > 0 && (
           <div className="mx-4 mt-4 px-4 py-2 bg-green-50 border border-green-100 rounded-xl">
             <p className="text-xs text-green-600 font-medium text-center">
-               You've unlocked <span className="font-bold">FREE shipping!</span>
+              You've unlocked <span className="font-bold">FREE shipping!</span>
             </p>
           </div>
         )}
@@ -72,9 +80,14 @@ export default function CartDrawer() {
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-16">
               <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mb-4">
-                <ShoppingBag size={32} className="text-[var(--secondary)] opacity-50" />
+                <ShoppingBag
+                  size={32}
+                  className="text-[var(--secondary)] opacity-50"
+                />
               </div>
-              <p className="text-gray-500 font-medium mb-1">Your bag is empty</p>
+              <p className="text-gray-500 font-medium mb-1">
+                Your bag is empty
+              </p>
               <p className="text-sm text-gray-400 mb-6">
                 Add some beautiful pieces to get started
               </p>
@@ -118,7 +131,14 @@ export default function CartDrawer() {
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg overflow-hidden">
                       <button
-                        onClick={() => updateQty(item.variantId, item.size, item.qty - 1, item.id)}
+                        onClick={() =>
+                          updateQty(
+                            item.variantId,
+                            item.size,
+                            item.qty - 1,
+                            item.id,
+                          )
+                        }
                         className="w-7 h-7 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors"
                       >
                         <Minus size={12} />
@@ -127,14 +147,31 @@ export default function CartDrawer() {
                         {item.qty}
                       </span>
                       <button
-                        onClick={() => updateQty(item.variantId, item.size, item.qty + 1, item.id)}
-                        className="w-7 h-7 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors"
+                        onClick={() => {
+                          const maxStock = item.stock ?? Infinity;
+                          if (item.qty < maxStock) {
+                            updateQty(
+                              item.variantId,
+                              item.size,
+                              item.qty + 1,
+                              item.id,
+                            );
+                          }
+                        }}
+                        disabled={item.qty >= (item.stock ?? Infinity)}
+                        className={`w-7 h-7 flex items-center justify-center hover:bg-gray-50 transition-colors ${
+                          item.qty >= (item.stock ?? Infinity)
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-gray-600"
+                        }`}
                       >
                         <Plus size={12} />
                       </button>
                     </div>
                     <button
-                      onClick={() => removeItem(item.variantId, item.size, item.id)}
+                      onClick={() =>
+                        removeItem(item.variantId, item.size, item.id)
+                      }
                       className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-[var(--secondary)] text-gray-400 transition-colors"
                     >
                       <Trash2 size={14} />
@@ -156,13 +193,17 @@ export default function CartDrawer() {
               </div>
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Shipping</span>
-                <span className={shippingFree ? "text-green-600 font-medium" : ""}>
+                <span
+                  className={shippingFree ? "text-green-600 font-medium" : ""}
+                >
                   {shippingFree ? "FREE" : `₹${shippingCharge}`}
                 </span>
               </div>
               <div className="flex justify-between text-base font-bold text-gray-900 pt-1 border-t border-gray-100">
                 <span>Total</span>
-                <span>₹{(subtotal + shippingCharge).toLocaleString("en-IN")}</span>
+                <span>
+                  ₹{(subtotal + shippingCharge).toLocaleString("en-IN")}
+                </span>
               </div>
             </div>
 

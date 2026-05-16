@@ -423,12 +423,15 @@ export default function ProductDetail({ product, related }) {
   const currentCartQty =
     cartItems
       ?.filter(
-        (item) => item.productId === product.id && item.size === selectedSize,
+        (item) =>
+          (item.productId === product.id || item.id === product.id) &&
+          item.size === selectedSize,
       )
       .reduce((total, item) => total + (item.qty || 1), 0) || 0;
 
+  // maxQty: only meaningful when a variant is selected
   const maxQty = selectedVariant
-    ? Math.max(selectedVariant.stock - currentCartQty, 0)
+    ? Math.max((selectedVariant.stock ?? 0) - currentCartQty, 0)
     : 10;
 
   // Auto-adjust qty when switching sizes
@@ -439,8 +442,8 @@ export default function ProductDetail({ product, related }) {
   }, [selectedVariant, qty]);
 
   const remainingStockForSelected = selectedVariant
-    ? Math.max(selectedVariant.stock - currentCartQty, 0)
-    : 0;
+    ? Math.max((selectedVariant.stock ?? 0) - currentCartQty, 0)
+    : null;
 
   const inStock = selectedVariant
     ? remainingStockForSelected > 0
@@ -457,12 +460,10 @@ export default function ProductDetail({ product, related }) {
     if (needsSize && !selectedSize) {
       setSizeError(true);
       setTimeout(() => setSizeError(false), 2000);
-
       document.getElementById("size-selector")?.scrollIntoView({
         behavior: "smooth",
         block: "center",
       });
-
       return;
     }
 
@@ -473,35 +474,28 @@ export default function ProductDetail({ product, related }) {
 
     if (!variant) return;
 
-    const availableStock = variant.stock || 0;
+    const availableStock = variant.stock ?? 0;
 
-    // Count already existing quantity in cart
+    // Count already-in-cart qty for this exact variant
     const existingCartQty =
       cartItems
         ?.filter(
           (item) =>
-            item.productId === product.id &&
+            (item.productId === product.id || item.id === product.id) &&
             item.size === (selectedSize || variant.size),
         )
         .reduce((total, item) => total + (item.qty || 1), 0) || 0;
 
     const remainingStock = availableStock - existingCartQty;
 
-    // Prevent adding if already fully added
     if (remainingStock <= 0) {
-      alert("This product is already fully added to cart.");
+      // Button should already be disabled, but guard here too
       return;
     }
 
-    // Prevent exceeding stock
-    if (qty > remainingStock) {
-      alert(`Only ${remainingStock} item(s) left in stock.`);
-      setQty(remainingStock);
-      return;
-    }
+    const qtyToAdd = Math.min(qty, remainingStock);
 
     setAdding(true);
-
     addItem({
       id: product.id,
       variantId: variant.id || product.id,
@@ -511,7 +505,8 @@ export default function ProductDetail({ product, related }) {
       image: images[0] || "",
       slug: product.slug || product.handle || "",
       size: selectedSize || variant.size || null,
-      quantity: qty,
+      quantity: qtyToAdd,
+      stock: variant.stock ?? 0, 
     });
     setTimeout(() => setAdding(false), 1800);
   };
@@ -893,19 +888,22 @@ export default function ProductDetail({ product, related }) {
               <button
                 onClick={handleAddToCart}
                 disabled={
-                  !inStock || qty > maxQty || remainingStockForSelected === 0
+                  !inStock ||
+                  (selectedVariant && remainingStockForSelected === 0)
                 }
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${
                   !inStock
                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : adding
-                      ? "bg-green-500 text-white shadow-lg shadow-green-100"
-                      : "bg-[var(--secondary)] text-white hover:bg-[#c03535] shadow-lg shadow-red-100 hover:shadow-xl hover:-translate-y-0.5"
+                    : selectedVariant && remainingStockForSelected === 0
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : adding
+                        ? "bg-green-500 text-white shadow-lg shadow-green-100"
+                        : "bg-[var(--secondary)] text-white hover:bg-[#c03535] shadow-lg shadow-red-100 hover:shadow-xl hover:-translate-y-0.5"
                 }`}
               >
                 <ShoppingBag size={16} />
-                {remainingStockForSelected === 0
-                  ? "Already Added Max Qty"
+                {selectedVariant && remainingStockForSelected === 0
+                  ? "Already in Bag (Max Qty)"
                   : !inStock
                     ? "Out of Stock"
                     : adding
