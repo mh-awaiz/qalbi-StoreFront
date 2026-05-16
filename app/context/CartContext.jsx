@@ -4,25 +4,34 @@ import { createContext, useContext, useReducer, useEffect } from "react";
 const CartContext = createContext(null);
 
 // Match cart items by variantId (Shopify GID) + size for uniqueness
-const itemKey = (item) =>
-  `${item.variantId || item.id}::${item.size || ""}`;
+const itemKey = (item) => `${item.variantId || item.id}::${item.size || ""}`;
 
 const cartReducer = (state, action) => {
   switch (action.type) {
     case "ADD_ITEM": {
       const key = itemKey(action.payload);
       const exists = state.items.find((i) => itemKey(i) === key);
+
+      const incomingQty = action.payload.quantity || 1;
+
       if (exists) {
         return {
           ...state,
           items: state.items.map((i) =>
-            itemKey(i) === key ? { ...i, qty: i.qty + 1 } : i
+            itemKey(i) === key ? { ...i, qty: i.qty + incomingQty } : i,
           ),
         };
       }
+
       return {
         ...state,
-        items: [...state.items, { ...action.payload, qty: 1 }],
+        items: [
+          ...state.items,
+          {
+            ...action.payload,
+            qty: incomingQty,
+          },
+        ],
       };
     }
     case "REMOVE_ITEM": {
@@ -43,7 +52,7 @@ const cartReducer = (state, action) => {
       return {
         ...state,
         items: state.items.map((i) =>
-          itemKey(i) === key ? { ...i, qty: action.payload.qty } : i
+          itemKey(i) === key ? { ...i, qty: action.payload.qty } : i,
         ),
       };
     }

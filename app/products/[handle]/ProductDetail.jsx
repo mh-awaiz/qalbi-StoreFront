@@ -10,7 +10,9 @@ function useWishlist(slug, productId) {
   const sync = useCallback(() => {
     try {
       const w = JSON.parse(localStorage.getItem("qalbi_wishlist") || "[]");
-      setWishlisted(w.some((i) => i.slug === slug || i.productId === productId));
+      setWishlisted(
+        w.some((i) => i.slug === slug || i.productId === productId),
+      );
     } catch {
       setWishlisted(false);
     }
@@ -22,19 +24,24 @@ function useWishlist(slug, productId) {
     return () => window.removeEventListener("wishlist-updated", sync);
   }, [sync]);
 
-  const toggle = useCallback((product) => {
-    try {
-      const w = JSON.parse(localStorage.getItem("qalbi_wishlist") || "[]");
-      const idx = w.findIndex((i) => i.slug === slug || i.productId === productId);
-      const updated =
-        idx > -1
-          ? w.filter((_, i) => i !== idx)
-          : [...w, { ...product, savedAt: new Date().toISOString() }];
-      localStorage.setItem("qalbi_wishlist", JSON.stringify(updated));
-      window.dispatchEvent(new Event("wishlist-updated"));
-      setWishlisted(idx === -1);
-    } catch {}
-  }, [slug, productId]);
+  const toggle = useCallback(
+    (product) => {
+      try {
+        const w = JSON.parse(localStorage.getItem("qalbi_wishlist") || "[]");
+        const idx = w.findIndex(
+          (i) => i.slug === slug || i.productId === productId,
+        );
+        const updated =
+          idx > -1
+            ? w.filter((_, i) => i !== idx)
+            : [...w, { ...product, savedAt: new Date().toISOString() }];
+        localStorage.setItem("qalbi_wishlist", JSON.stringify(updated));
+        window.dispatchEvent(new Event("wishlist-updated"));
+        setWishlisted(idx === -1);
+      } catch {}
+    },
+    [slug, productId],
+  );
 
   return { wishlisted, toggle };
 }
@@ -71,7 +78,7 @@ import {
 
 function seededRandom(seed) {
   // Use unsigned 32-bit seed; fallback if zero
-  let s = (seed >>> 0) || 123456789;
+  let s = seed >>> 0 || 123456789;
   return () => {
     s ^= s << 13;
     s ^= s >> 17;
@@ -91,7 +98,9 @@ function getProductStats(productId = "") {
   seed = seed || 987654;
 
   const rand = seededRandom(seed);
-  rand(); rand(); rand(); // warm up
+  rand();
+  rand();
+  rand(); // warm up
 
   // Clamp steps 0–9 so rating stays in [4.0, 4.9] — never causes star count overflow
   const steps = Math.min(Math.floor(rand() * 10), 9);
@@ -311,8 +320,9 @@ function DescriptionContent({ descriptionHtml, descriptionText }) {
 
               // For Size
               else if (section.title === "Size") {
+                // Keep complete size measurement lines intact
                 items = section.content
-                  .split(/(?=One Size|XS|S|M|L|XL|XXL|XXXL)/i)
+                  .split(/(?=Kurta:|Bottom:|Dupatta:|Shirt:|Pant:|Length:)/i)
                   .filter((item) => item.trim());
               }
 
@@ -352,7 +362,7 @@ function DescriptionContent({ descriptionHtml, descriptionText }) {
 }
 
 export default function ProductDetail({ product, related }) {
-  const { addItem } = useCart();
+  const { addItem, cartItems } = useCart();
 
   const [imgIdx, setImgIdx] = useState(0);
   const [imgLoading, setImgLoading] = useState(false);
@@ -368,7 +378,7 @@ export default function ProductDetail({ product, related }) {
   // Wishlist: use the same localStorage system as ProductCard
   const { wishlisted, toggle: toggleWishlistFn } = useWishlist(
     product.slug || product.handle,
-    product.id
+    product.id,
   );
 
   const handleWishlist = () => {
@@ -409,40 +419,100 @@ export default function ProductDetail({ product, related }) {
   const selectedVariant = product.variants?.find(
     (v) => v.size === selectedSize,
   );
+
+  const currentCartQty =
+    cartItems
+      ?.filter(
+        (item) => item.productId === product.id && item.size === selectedSize,
+      )
+      .reduce((total, item) => total + (item.qty || 1), 0) || 0;
+
+  const maxQty = selectedVariant
+    ? Math.max(selectedVariant.stock - currentCartQty, 0)
+    : 10;
+
+  // Auto-adjust qty when switching sizes
+  useEffect(() => {
+    if (selectedVariant?.stock && qty > selectedVariant.stock) {
+      setQty(selectedVariant.stock);
+    }
+  }, [selectedVariant, qty]);
+
+  const remainingStockForSelected = selectedVariant
+    ? Math.max(selectedVariant.stock - currentCartQty, 0)
+    : 0;
+
   const inStock = selectedVariant
-    ? selectedVariant.stock > 0
+    ? remainingStockForSelected > 0
     : product.variants?.some((v) => v.stock > 0);
+
   const lowStock =
-    selectedVariant && selectedVariant.stock > 0 && selectedVariant.stock <= 3;
+    selectedVariant &&
+    remainingStockForSelected > 0 &&
+    remainingStockForSelected <= 3;
 
   const handleAddToCart = () => {
     const needsSize = product.variants?.length > 1;
+
     if (needsSize && !selectedSize) {
       setSizeError(true);
       setTimeout(() => setSizeError(false), 2000);
-      document
-        .getElementById("size-selector")
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      document.getElementById("size-selector")?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+
       return;
     }
-    setAdding(true);
+
     const variant =
       product.variants?.find(
         (v) => v.size === selectedSize || v.title === selectedSize,
       ) || product.variants?.[0];
-    // Add the item qty times (or pass qty if CartContext supports it)
-    for (let i = 0; i < qty; i++) {
-      addItem({
-        id: product.id,
-        variantId: variant?.id || product.id,
-        productId: product.id,
-        title: product.title,
-        price: variant?.price || product.price,
-        image: images[0] || "",
-        slug: product.slug || product.handle || "",
-        size: selectedSize || variant?.size || null,
-      });
+
+    if (!variant) return;
+
+    const availableStock = variant.stock || 0;
+
+    // Count already existing quantity in cart
+    const existingCartQty =
+      cartItems
+        ?.filter(
+          (item) =>
+            item.productId === product.id &&
+            item.size === (selectedSize || variant.size),
+        )
+        .reduce((total, item) => total + (item.qty || 1), 0) || 0;
+
+    const remainingStock = availableStock - existingCartQty;
+
+    // Prevent adding if already fully added
+    if (remainingStock <= 0) {
+      alert("This product is already fully added to cart.");
+      return;
     }
+
+    // Prevent exceeding stock
+    if (qty > remainingStock) {
+      alert(`Only ${remainingStock} item(s) left in stock.`);
+      setQty(remainingStock);
+      return;
+    }
+
+    setAdding(true);
+
+    addItem({
+      id: product.id,
+      variantId: variant.id || product.id,
+      productId: product.id,
+      title: product.title,
+      price: variant.price || product.price,
+      image: images[0] || "",
+      slug: product.slug || product.handle || "",
+      size: selectedSize || variant.size || null,
+      quantity: qty,
+    });
     setTimeout(() => setAdding(false), 1800);
   };
 
@@ -463,10 +533,12 @@ export default function ProductDetail({ product, related }) {
   const emptyStars = Math.max(0, 5 - fullStars - (hasHalf ? 1 : 0));
 
   return (
-    <div className="min-h-screen bg-white">
+    // <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden w-full max-w-full">
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-        <div className="flex items-center gap-2 text-xs text-gray-400 overflow-x-auto no-scrollbar whitespace-nowrap">
+        {/* <div className="flex items-center gap-2 text-xs text-gray-400 overflow-x-auto no-scrollbar whitespace-nowrap"> */}
+        <div className="flex items-center gap-2 text-xs text-gray-400 min-w-0 flex-wrap">
           <Link
             href="/"
             className="hover:text-[var(--secondary)] transition-colors"
@@ -492,18 +564,21 @@ export default function ProductDetail({ product, related }) {
               <span>/</span>
             </>
           )}
-          <span className="text-gray-600 truncate max-w-[160px] sm:max-w-none">
+          {/* <span className="text-gray-600 truncate max-w-[160px] sm:max-w-none"> */}
+          <span className="text-gray-600 truncate max-w-[120px] sm:max-w-none min-w-0">
             {product.title}
           </span>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-16 sm:pb-20">
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-16">
+        {/* <div className="grid md:grid-cols-2 gap-8 lg:gap-16"> */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 lg:gap-16 min-w-0">
           {/* ── Images — 5:7 aspect ratio ── */}
           <div className="space-y-3">
             {/* Mobile Swiper */}
-            <div className="block md:hidden">
+            {/* <div className="block md:hidden"> */}
+            <div className="block md:hidden w-full max-w-full overflow-hidden min-w-0">
               {images.length > 0 ? (
                 <Swiper
                   modules={[Pagination]}
@@ -511,12 +586,12 @@ export default function ProductDetail({ product, related }) {
                   spaceBetween={10}
                   slidesPerView={1}
                   onSlideChange={(swiper) => setImgIdx(swiper.activeIndex)}
-                  className="rounded-2xl overflow-hidden"
+                  className="w-full max-w-full rounded-2xl overflow-hidden"
                 >
                   {images.map((img, i) => (
                     <SwiperSlide key={i}>
                       <div
-                        className="relative bg-gray-100"
+                        className="relative bg-gray-100 w-full overflow-hidden"
                         style={{ aspectRatio: "5/7" }}
                       >
                         <Image
@@ -553,7 +628,11 @@ export default function ProductDetail({ product, related }) {
                     <Image
                       key={i}
                       src={`${img}&width=1200`}
-                      alt={i === 0 ? product.title : `${product.title} - view ${i + 1}`}
+                      alt={
+                        i === 0
+                          ? product.title
+                          : `${product.title} - view ${i + 1}`
+                      }
                       fill
                       priority={i === 0}
                       quality={85}
@@ -599,7 +678,7 @@ export default function ProductDetail({ product, related }) {
 
             {/* Thumbnails */}
             {images.length > 1 && (
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-2 w-full max-w-full overflow-hidden">
                 {images.map((img, i) => (
                   <button
                     key={i}
@@ -624,7 +703,8 @@ export default function ProductDetail({ product, related }) {
           </div>
 
           {/* ── Product Info ── */}
-          <div className="flex flex-col">
+          {/* <div className="flex flex-col"> */}
+          <div className="flex flex-col min-w-0 w-full">
             {/* Category + Share */}
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs text-[var(--secondary)] font-semibold tracking-widest uppercase">
@@ -715,11 +795,13 @@ export default function ProductDetail({ product, related }) {
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="text-xs font-bold tracking-widest uppercase text-gray-700">
                     Size
-                    {selectedSize && (
-                      <span className="ml-2 text-[var(--secondary)] font-semibold normal-case tracking-normal">
-                        — {selectedSize}
-                      </span>
-                    )}
+                    {selectedSize &&
+                      remainingStockForSelected > 0 &&
+                      remainingStockForSelected <= 5 && (
+                        <p className="mt-2 text-xs text-orange-500 font-medium">
+                          Only {remainingStockForSelected} left in stock!
+                        </p>
+                      )}
                   </span>
                   {sizeError && (
                     <span className="text-xs text-red-500 font-medium animate-pulse">
@@ -742,11 +824,12 @@ export default function ProductDetail({ product, related }) {
                         }}
                         disabled={isOutOfStock}
                         className={`relative min-w-[52px] px-3.5 py-2 rounded-xl border-2 text-sm font-semibold transition-all duration-150
-                          ${isSelected
-                            ? "border-[var(--secondary)] bg-[var(--secondary)] text-white shadow-md shadow-red-100"
-                            : isOutOfStock
-                              ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed line-through"
-                              : "border-gray-200 bg-white text-gray-700 hover:border-[var(--secondary)] hover:text-[var(--secondary)]"
+                          ${
+                            isSelected
+                              ? "border-[var(--secondary)] bg-[var(--secondary)] text-white shadow-md shadow-red-100"
+                              : isOutOfStock
+                                ? "border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed line-through"
+                                : "border-gray-200 bg-white text-gray-700 hover:border-[var(--secondary)] hover:text-[var(--secondary)]"
                           }
                           ${sizeError && !isSelected ? "border-red-300" : ""}
                         `}
@@ -761,23 +844,30 @@ export default function ProductDetail({ product, related }) {
                     );
                   })}
                 </div>
-                {selectedSize && (() => {
-                  const v = product.variants.find((x) => x.size === selectedSize);
-                  return v?.stock > 0 && v.stock <= 5 ? (
-                    <p className="mt-2 text-xs text-orange-500 font-medium">
-                      Only {v.stock} left in stock!
-                    </p>
-                  ) : null;
-                })()}
+                {selectedSize &&
+                  (() => {
+                    const v = product.variants.find(
+                      (x) => x.size === selectedSize,
+                    );
+                    return v?.stock > 0 && v.stock <= 5 ? (
+                      <p className="mt-2 text-xs text-orange-500 font-medium">
+                        Only {v.stock} left in stock!
+                      </p>
+                    ) : null;
+                  })()}
               </div>
             )}
 
             {/* Qty + Add to cart */}
-            <div className="flex gap-3 mb-5">
+            <div className="flex gap-3 mb-5 w-full min-w-0">
               <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-2 flex-shrink-0">
                 <button
                   onClick={() => setQty(Math.max(1, qty - 1))}
-                  className="w-8 h-11 flex items-center justify-center text-gray-500 hover:text-[var(--secondary)] transition-colors"
+                  className={`w-8 h-11 flex items-center justify-center transition-colors ${
+                    qty >= maxQty
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-gray-500 hover:text-[var(--secondary)]"
+                  }`}
                 >
                   <Minus size={13} />
                 </button>
@@ -785,8 +875,16 @@ export default function ProductDetail({ product, related }) {
                   {qty}
                 </span>
                 <button
-                  onClick={() => setQty(qty + 1)}
-                  className="w-8 h-11 flex items-center justify-center text-gray-500 hover:text-[var(--secondary)] transition-colors"
+                  onClick={() => {
+                    if (qty < maxQty) {
+                      setQty(qty + 1);
+                    }
+                  }}
+                  className={`w-8 h-11 flex items-center justify-center transition-colors ${
+                    qty >= maxQty
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-gray-500 hover:text-[var(--secondary)]"
+                  }`}
                 >
                   <Plus size={13} />
                 </button>
@@ -794,7 +892,9 @@ export default function ProductDetail({ product, related }) {
 
               <button
                 onClick={handleAddToCart}
-                disabled={!inStock}
+                disabled={
+                  !inStock || qty > maxQty || remainingStockForSelected === 0
+                }
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all ${
                   !inStock
                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
@@ -804,11 +904,13 @@ export default function ProductDetail({ product, related }) {
                 }`}
               >
                 <ShoppingBag size={16} />
-                {!inStock
-                  ? "Out of Stock"
-                  : adding
-                    ? "Added to Bag ✓"
-                    : "Add to Bag"}
+                {remainingStockForSelected === 0
+                  ? "Already Added Max Qty"
+                  : !inStock
+                    ? "Out of Stock"
+                    : adding
+                      ? "Added to Bag ✓"
+                      : "Add to Bag"}
               </button>
 
               <button
@@ -843,7 +945,7 @@ export default function ProductDetail({ product, related }) {
                 {
                   icon: <Shield size={15} />,
                   label: "Secure Pay",
-                  sub: "via Shopify",
+                  sub: "via Razorpay",
                 },
               ].map((b) => (
                 <div
@@ -887,7 +989,7 @@ export default function ProductDetail({ product, related }) {
                           className="text-[var(--secondary)] flex-shrink-0 mt-0.5"
                         />
                       ),
-                      text: "No extra charges — pay securely via Shopify",
+                      text: "No extra charges — pay securely via Razorpay",
                     },
                     {
                       icon: (
@@ -914,8 +1016,8 @@ export default function ProductDetail({ product, related }) {
                     Item must be unused, unwashed, and in original packaging
                     with tags intact.
                   </p>
-                  <p>No direct refunds — store credit or exchange only.</p>
-                  <p>Sale items are not eligible for exchange.</p>
+                  <p>Exchange Only — No Refund</p>
+                  <p>Sale/Offer items are not eligible for exchange.</p>
                 </div>
               </AccordionItem>
 
@@ -980,7 +1082,7 @@ export default function ProductDetail({ product, related }) {
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 w-full min-w-0">
               {related.map((p) => {
                 const relDiscount =
                   p.compareAtPrice && p.compareAtPrice > p.price

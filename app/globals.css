@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap");
 @import "tailwindcss";
 
 :root {
@@ -13,7 +13,6 @@
   --z-navbar: 50;
   --z-drawer: 1000;
   --z-overlay: 900;
-
 }
 
 *,
@@ -22,6 +21,15 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
 html {
   scroll-behavior: smooth;
 }
@@ -180,7 +188,6 @@ img {
 
 /* ── Touch improvements for mobile ── */
 @media (max-width: 768px) {
-
   /* Larger tap targets */
   button,
   a {
