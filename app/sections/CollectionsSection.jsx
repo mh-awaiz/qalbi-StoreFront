@@ -5,6 +5,36 @@ import Link from "next/link";
 import { FiArrowRight, FiTruck, FiRefreshCw, FiShield } from "react-icons/fi";
 import { MdDiamond } from "react-icons/md";
 
+// const FALLBACK_COLLECTIONS = [
+//   {
+//     name: "Dress Materials",
+//     description: "Chiffon, Georgette, Silk & more",
+//     handle: "dress-material",
+//     image:
+//       "https://cdn.shopify.com/s/files/1/0879/0366/6340/files/Front2.jpg?v=1762569597",
+//     video:
+//       "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778876814/Suit_Sets_qpat9k.mp4",
+//   },
+//   {
+//     name: "Chikankari",
+//     description: "Elegant embroidered kameez sets",
+//     handle: "chikankari-kurti",
+//     image:
+//       "https://cdn.shopify.com/s/files/1/0879/0366/6340/files/IMG_2644.jpg?v=1746646118",
+//     video:
+//       "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778876895/CHIKANKARI_rzl3bz.mp4",
+//   },
+//   {
+//     name: "Cotten Worid",
+//     description: "Printed organza & cotton silk",
+//     handle: "premium-collection",
+//     image:
+//       "https://cdn.shopify.com/s/files/1/0879/0366/6340/files/Daman.jpg?v=1747405900",
+//     video:
+//       "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778877239/cotten_k94pig.mp4",
+//   },
+// ];
+
 const FALLBACK_COLLECTIONS = [
   {
     name: "Dress Materials",
@@ -13,7 +43,7 @@ const FALLBACK_COLLECTIONS = [
     image:
       "https://cdn.shopify.com/s/files/1/0879/0366/6340/files/Front2.jpg?v=1762569597",
     video:
-      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778876814/Suit_Sets_qpat9k.mp4",
+      "https://res.cloudinary.com/dxra2tyvf/video/upload/q_auto,f_auto,vc_auto,w_720/v1778876814/Suit_Sets_qpat9k.mp4",
   },
   {
     name: "Chikankari",
@@ -22,7 +52,7 @@ const FALLBACK_COLLECTIONS = [
     image:
       "https://cdn.shopify.com/s/files/1/0879/0366/6340/files/IMG_2644.jpg?v=1746646118",
     video:
-      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778876895/CHIKANKARI_rzl3bz.mp4",
+      "https://res.cloudinary.com/dxra2tyvf/video/upload/q_auto,f_auto,vc_auto,w_720/v1778876895/CHIKANKARI_rzl3bz.mp4",
   },
   {
     name: "Cotten Worid",
@@ -31,7 +61,7 @@ const FALLBACK_COLLECTIONS = [
     image:
       "https://cdn.shopify.com/s/files/1/0879/0366/6340/files/Daman.jpg?v=1747405900",
     video:
-      "https://res.cloudinary.com/dxra2tyvf/video/upload/v1778877239/cotten_k94pig.mp4",
+      "https://res.cloudinary.com/dxra2tyvf/video/upload/q_auto,f_auto,vc_auto,w_720/v1778877239/cotten_k94pig.mp4",
   },
 ];
 
@@ -60,18 +90,58 @@ const features = [
 
 function CollectionCard({ col, idx, layout }) {
   const [hovering, setHovering] = useState(false);
-  const [vidRef, setVidRef] = useState(null);
+  const [showVideo, setShowVideo] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile || !col.video) return;
+
+    const timer = setTimeout(() => {
+      setShowVideo(true);
+
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0;
+        videoRef.current.play().catch(() => {});
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [isMobile, col.video]);
 
   const handleMouseEnter = () => {
+    if (isMobile) return;
+
     setHovering(true);
-    if (vidRef) {
-      vidRef.currentTime = 0;
-      vidRef.play().catch(() => {});
+    setShowVideo(true);
+
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
     }
   };
+
   const handleMouseLeave = () => {
+    if (isMobile) return;
+
     setHovering(false);
-    if (vidRef) vidRef.pause();
+    setShowVideo(false);
+
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
   };
 
   // layout: "tall" = left big card, "short" = right stacked cards
@@ -93,8 +163,8 @@ function CollectionCard({ col, idx, layout }) {
           fill
           priority={idx === 0}
           sizes="(max-width: 640px) 100vw, 50vw"
-          className={`absolute inset-0 object-cover transition-transform duration-700 ${
-            hovering ? "scale-105" : "scale-100"
+          className={`absolute inset-0 object-cover transition-all duration-700 ${
+            showVideo ? "opacity-0 scale-105" : "opacity-100 scale-100"
           }`}
         />
       )}
@@ -102,14 +172,16 @@ function CollectionCard({ col, idx, layout }) {
       {/* Video */}
       {col.video && (
         <video
-          ref={(el) => setVidRef(el)}
+          ref={videoRef}
           src={col.video}
           muted
           loop
           playsInline
-          preload="none"
+          preload="metadata"
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-          style={{ opacity: hovering ? 1 : 0 }}
+          style={{
+            opacity: showVideo ? 1 : 0,
+          }}
         />
       )}
 
@@ -227,7 +299,7 @@ function CollectionCard({ col, idx, layout }) {
 }
 
 export default function CollectionsSection() {
-  const [categories, setCategories] = useState([]);
+  const categories = FALLBACK_COLLECTIONS;
 
   useEffect(() => {
     fetch("/api/collections")
@@ -239,26 +311,25 @@ export default function CollectionsSection() {
       .catch(() => {});
   }, []);
 
-  const displayCollections =
-    categories.length > 0
-      ? categories.map((cat, i) => ({
-          ...cat,
+  const displayCollections = categories
+    ? categories.map((cat, i) => ({
+        ...cat,
 
-          // force custom collection route
-          handle: FALLBACK_COLLECTIONS[i]?.handle || cat.handle,
+        // force custom collection route
+        handle: FALLBACK_COLLECTIONS[i]?.handle || cat.handle,
 
-          // force custom title
-          name: FALLBACK_COLLECTIONS[i]?.name || cat.name,
+        // force custom title
+        name: FALLBACK_COLLECTIONS[i]?.name || cat.name,
 
-          // force custom description
-          description:
-            FALLBACK_COLLECTIONS[i]?.description || cat.description || "",
+        // force custom description
+        description:
+          FALLBACK_COLLECTIONS[i]?.description || cat.description || "",
 
-          // force custom media
-          image: FALLBACK_COLLECTIONS[i]?.image || cat.image || null,
-          video: FALLBACK_COLLECTIONS[i]?.video || null,
-        }))
-      : FALLBACK_COLLECTIONS;
+        // force custom media
+        image: FALLBACK_COLLECTIONS[i]?.image || cat.image || null,
+        video: FALLBACK_COLLECTIONS[i]?.video || null,
+      }))
+    : FALLBACK_COLLECTIONS;
 
   return (
     <>
